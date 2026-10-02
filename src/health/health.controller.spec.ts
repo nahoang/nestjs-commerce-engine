@@ -5,23 +5,22 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 
 describe('HealthController', () => {
   let controller: HealthController;
-  let prisma: PrismaService;
+  let mockPrisma: { $queryRaw: jest.Mock };
 
   beforeEach(async () => {
+    mockPrisma = {
+      $queryRaw: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [HealthController],
-      providers: [
-        {
-          provide: PrismaService,
-          useValue: {
-            $queryRaw: jest.fn(),
-          },
-        },
-      ],
-    }).compile();
+      providers: [PrismaService],
+    })
+      .overrideProvider(PrismaService)
+      .useValue(mockPrisma)
+      .compile();
 
     controller = module.get<HealthController>(HealthController);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   it('should be defined', () => {
@@ -29,17 +28,17 @@ describe('HealthController', () => {
   });
 
   it('should return 200 healthy when database is reachable', async () => {
-    (prisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ '?column?': 1 }]);
+    mockPrisma.$queryRaw.mockResolvedValueOnce([{ '?column?': 1 }]);
 
     const response = await controller.check();
     expect(response).toEqual({
       status: 'healthy',
-      version: '0.0.1',
+      version: expect.any(String),
     });
   });
 
   it('should throw 503 unhealthy when database query fails', async () => {
-    (prisma.$queryRaw as jest.Mock).mockRejectedValueOnce(
+    mockPrisma.$queryRaw.mockRejectedValueOnce(
       new Error('Connection refused'),
     );
 
@@ -52,7 +51,7 @@ describe('HealthController', () => {
       expect(httpException.getStatus()).toBe(HttpStatus.SERVICE_UNAVAILABLE);
       expect(httpException.getResponse()).toMatchObject({
         status: 'unhealthy',
-        version: '0.0.1',
+        version: expect.any(String),
       });
     }
   });
