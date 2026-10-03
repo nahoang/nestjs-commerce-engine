@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HealthController } from './health.controller';
-import { PrismaService } from '../shared/infrastructure/prisma/prisma.service';
+import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 describe('HealthController', () => {
@@ -31,16 +31,12 @@ describe('HealthController', () => {
     mockPrisma.$queryRaw.mockResolvedValueOnce([{ '?column?': 1 }]);
 
     const response = await controller.check();
-    expect(response).toEqual({
-      status: 'healthy',
-      version: expect.any(String),
-    });
+    expect(response.status).toBe('healthy');
+    expect(typeof response.version).toBe('string');
   });
 
   it('should throw 503 unhealthy when database query fails', async () => {
-    mockPrisma.$queryRaw.mockRejectedValueOnce(
-      new Error('Connection refused'),
-    );
+    mockPrisma.$queryRaw.mockRejectedValueOnce(new Error('Connection refused'));
 
     try {
       await controller.check();
@@ -48,11 +44,10 @@ describe('HealthController', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(HttpException);
       const httpException = error as HttpException;
+      const body = httpException.getResponse() as Record<string, unknown>;
       expect(httpException.getStatus()).toBe(HttpStatus.SERVICE_UNAVAILABLE);
-      expect(httpException.getResponse()).toMatchObject({
-        status: 'unhealthy',
-        version: expect.any(String),
-      });
+      expect(body.status).toBe('unhealthy');
+      expect(typeof body.version).toBe('string');
     }
   });
 });

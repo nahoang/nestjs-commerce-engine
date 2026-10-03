@@ -1,5 +1,6 @@
 import * as request from 'supertest';
 import { INestApplication } from '@nestjs/common';
+import { Server } from 'http';
 import { createTestApp } from './helpers/test-app';
 import { truncateAll } from './helpers/db';
 import { PrismaService } from '../src/shared/infrastructure/prisma/prisma.service';
@@ -23,13 +24,12 @@ describe('HealthController (e2e)', () => {
   });
 
   it('GET /health returns 200 with healthy status', async () => {
-    const response = await request(app.getHttpServer())
+    const response = await request(app.getHttpServer() as Server)
       .get('/health')
       .expect(200);
 
-    expect(response.body).toEqual({
-      status: 'healthy',
-      version: expect.any(String),
-    });
+    const body = response.body as { status: string; version: string };
+    expect(body.status).toBe('healthy');
+    expect(typeof body.version).toBe('string');
   });
 });

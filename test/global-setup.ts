@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 
-export default async function globalSetup(): Promise<void> {
+export default function globalSetup(): void {
   const envTestPath = path.resolve(__dirname, '../.env.test');
   if (fs.existsSync(envTestPath)) {
     dotenv.config({ path: envTestPath, quiet: true });

@@ -1,13 +1,15 @@
 import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
-import { PrismaService } from '../shared/infrastructure/prisma/prisma.service';
+import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
 function getAppVersion(): string {
   try {
     const pkgPath = path.resolve(process.cwd(), 'package.json');
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
-    return pkg.version || '0.0.1';
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8')) as {
+      version?: string;
+    };
+    return typeof pkg.version === 'string' ? pkg.version : '0.0.1';
   } catch {
     return '0.0.1';
   }
@@ -32,7 +34,10 @@ export class HealthController {
         {
           status: 'unhealthy',
           version: appVersion,
-          error: error instanceof Error ? error.message : 'Database connection error',
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Database connection error',
         },
         HttpStatus.SERVICE_UNAVAILABLE,
       );

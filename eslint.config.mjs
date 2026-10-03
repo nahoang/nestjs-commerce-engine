@@ -32,4 +32,55 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-argument': 'warn'
     },
   },
+  {
+    files: ['src/**/domain/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '@nestjs/**',
+                '@nestjs/*',
+                '@prisma/**',
+                '@prisma/*',
+                'class-validator',
+                'class-transformer',
+              ],
+              message:
+                'Domain layer must not depend on external frameworks, ORMs, or DTO libraries (@nestjs/*, @prisma/*, class-validator, class-transformer).',
+            },
+            {
+              regex: '.*(/|^)(infrastructure|api)(/.*|$)',
+              message:
+                'Domain layer must not depend on Infrastructure or API layers.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/**/application/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@prisma/**', '@prisma/*'],
+              message:
+                'Application layer must depend on repository contracts/ports, not Prisma ORM (@prisma/*).',
+            },
+            {
+              regex: '.*(/|^)(infrastructure|api)(/.*|$)',
+              message:
+                'Application layer must not depend on Infrastructure or API layers.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );
