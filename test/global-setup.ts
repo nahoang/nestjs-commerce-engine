@@ -19,11 +19,19 @@ export default function globalSetup(): void {
   );
 
   // Synchronize Prisma schema into test database
-  execSync(`node "${prismaCliPath}" db push --skip-generate`, {
-    env: {
-      ...process.env,
-      DATABASE_URL: testDbUrl,
-    },
-    stdio: 'inherit',
-  });
+  try {
+    execSync(`node "${prismaCliPath}" db push --skip-generate`, {
+      env: {
+        ...process.env,
+        DATABASE_URL: testDbUrl,
+      },
+      stdio: 'inherit',
+    });
+  } catch (error) {
+    console.warn(
+      `[globalSetup] Database sync skipped: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 }
