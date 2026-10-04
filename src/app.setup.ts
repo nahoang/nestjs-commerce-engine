@@ -10,6 +10,9 @@ import {
   HttpExceptionFilter,
   DomainExceptionFilter,
 } from './shared/api/filters';
+import { LoggingInterceptor } from './shared/api/interceptors';
+import { AppConfigService } from './shared/infrastructure/config';
+import { ClsService } from 'nestjs-cls';
 
 /**
  * Recursively flattens class-validator ValidationErrors into { field, message } items.
@@ -49,6 +52,32 @@ export function formatValidationErrors(
  * invoked identically by main.ts (bootstrap) and e2e test helpers (test-app.ts).
  */
 export function configureApp(app: INestApplication): INestApplication {
+  // CORS: allow origins configured in ALLOWED_ORIGINS
+  let allowedOrigins: string[] = ['*'];
+  try {
+    const configService = app.get(AppConfigService, { strict: false });
+    if (configService) {
+      allowedOrigins = configService.allowedOrigins;
+    }
+  } catch {
+    // Fallback if AppConfigService is not available in DI container
+  }
+
+  app.enableCors({
+    origin: allowedOrigins.includes('*') ? '*' : allowedOrigins,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+  });
+
+  // Global logging interceptor (logs {method} {path} → {status} in {ms}ms [requestId])
+  let clsService: ClsService | undefined;
+  try {
+    clsService = app.get(ClsService, { strict: false });
+  } catch {
+    // Fallback if ClsService is not available in DI container
+  }
+  app.useGlobalInterceptors(new LoggingInterceptor(clsService));
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
