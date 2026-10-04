@@ -5,6 +5,11 @@ import {
 } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
 import { ValidationErrorItem } from './shared/api/envelope';
+import {
+  AllExceptionsFilter,
+  HttpExceptionFilter,
+  DomainExceptionFilter,
+} from './shared/api/filters';
 
 /**
  * Recursively flattens class-validator ValidationErrors into { field, message } items.
@@ -56,6 +61,19 @@ export function configureApp(app: INestApplication): INestApplication {
         });
       },
     }),
+  );
+
+  // Global exception filters registration:
+  // In NestJS, RouterExceptionFilters.create reverses the filter array (filters.reverse()),
+  // and selects the first matching filter using Array.find().
+  // Therefore, filters must be registered from least specific (catch-all) to most specific:
+  // 1. AllExceptionsFilter (@Catch()) registered first -> evaluated last as fallback
+  // 2. HttpExceptionFilter (@Catch(HttpException)) registered second -> evaluated second
+  // 3. DomainExceptionFilter (@Catch(DomainException)) registered third -> evaluated first
+  app.useGlobalFilters(
+    new AllExceptionsFilter(),
+    new HttpExceptionFilter(),
+    new DomainExceptionFilter(),
   );
 
   return app;
