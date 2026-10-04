@@ -1,3 +1,26 @@
+// ==============================================================================
+// PRISMA SCHEMA CONVENTIONS — NESTJS COMMERCE ENGINE
+// ==============================================================================
+// 1. Primary Key:
+//    - Every model must use UUID v4:
+//      id String @id @default(uuid())
+//
+// 2. Timestamps:
+//    - Every model must have createdAt and updatedAt with timestamptz(6):
+//      createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+//      updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+//
+// 3. Naming Conventions:
+//    - Fields in Prisma Schema: camelCase (e.g. orderNumber, unitPrice)
+//    - Columns in Database: snake_case via @map (e.g. @map("order_number"), @map("unit_price"))
+//    - Tables in Database: plural snake_case via @@map (e.g. @@map("orders"), @@map("order_items"))
+//
+// 4. Financial & Monetary Precision:
+//    - Monetary fields must use Decimal with precision (12, 2):
+//      amount Decimal @db.Decimal(12, 2)
+//    - Never use Float or Int for money.
+// ==============================================================================
+
 generator client {
   provider = "prisma-client-js"
 }
