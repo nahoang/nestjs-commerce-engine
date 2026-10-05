@@ -6,8 +6,6 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 cd "${ROOT_DIR}"
 
-PORT="${PORT:-3000}"
-HOST="http://localhost:${PORT}"
 ENV_FILE="${ROOT_DIR}/.env.test"
 
 if [ -f "${ENV_FILE}" ]; then
@@ -16,8 +14,17 @@ if [ -f "${ENV_FILE}" ]; then
   set +a
 fi
 
+PORT="${PORT:-3000}"
+HOST="http://localhost:${PORT}"
+
 export PORT="${PORT}"
 export NODE_ENV="test"
+
+if ! command -v hurl &> /dev/null; then
+  if [ -d "${HOME}/AppData/Local/Programs/hurl" ]; then
+    export PATH="${HOME}/AppData/Local/Programs/hurl:${PATH}"
+  fi
+fi
 
 echo "=== 1. Building application ==="
 pnpm build

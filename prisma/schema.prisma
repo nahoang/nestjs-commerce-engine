@@ -36,3 +36,18 @@ model HealthCheck {
 
   @@map("health_checks")
 }
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String    @db.VarChar(255)
+  slug      String    @unique @db.VarChar(255)
+  parentId  String?   @map("parent_id")
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryHierarchy")
+
+  @@map("categories")
+}

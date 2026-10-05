@@ -12,6 +12,7 @@ import { PrismaModule } from './shared/infrastructure/prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { validate, AppConfigModule } from './shared/infrastructure/config';
 import { TestFixturesModule } from './test-fixtures/test-fixtures.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
 
 const extraModules =
   process.env.NODE_ENV !== 'production' ? [TestFixturesModule] : [];
@@ -19,6 +20,7 @@ const extraModules =
 @Module({
   imports: [
     ...extraModules,
+    CatalogModule,
     ConfigModule.forRoot({
       isGlobal: true,
       validate,
