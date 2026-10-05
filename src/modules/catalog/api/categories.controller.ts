@@ -23,8 +23,16 @@ import {
 import { CreateCategoryUseCase } from '../application/create-category.use-case';
 import { GetCategoryUseCase } from '../application/get-category.use-case';
 import { ListCategoriesUseCase } from '../application/list-categories.use-case';
+import { GetCategoryTreeUseCase } from '../application/get-category-tree.use-case';
+import { GetBreadcrumbsUseCase } from '../application/get-breadcrumbs.use-case';
 import { CreateCategoryRequest } from './create-category.request';
-import { CategoryResponse, toCategoryResponse } from './category.response';
+import { CategoryTreeQueryDto } from './category-tree-query.dto';
+import {
+  CategoryResponse,
+  CategoryNodeResponse,
+  toCategoryResponse,
+  toCategoryNodeResponse,
+} from './category.response';
 
 @ApiTags('Categories')
 @Controller('api/v1/categories')
@@ -33,6 +41,8 @@ export class CategoriesController {
     private readonly createCategoryUseCase: CreateCategoryUseCase,
     private readonly getCategoryUseCase: GetCategoryUseCase,
     private readonly listCategoriesUseCase: ListCategoriesUseCase,
+    private readonly getCategoryTreeUseCase: GetCategoryTreeUseCase,
+    private readonly getBreadcrumbsUseCase: GetBreadcrumbsUseCase,
   ) {}
 
   @Post()
@@ -72,6 +82,34 @@ export class CategoriesController {
       query.limit,
       query.offset,
     );
+  }
+
+  @Get('tree')
+  @ApiOperation({ summary: 'Xem cây danh mục lồng nhau (hoặc cây con)' })
+  @SwaggerResponse({
+    status: 200,
+    description: 'Cây danh mục với các danh mục con lồng nhau',
+    type: [CategoryNodeResponse],
+  })
+  async getTree(
+    @Query() query: CategoryTreeQueryDto,
+  ): Promise<ApiResponse<CategoryNodeResponse[]>> {
+    const tree = await this.getCategoryTreeUseCase.execute(query.root_id);
+    return ok(tree.map(toCategoryNodeResponse));
+  }
+
+  @Get(':slugOrId/breadcrumbs')
+  @ApiOperation({ summary: 'Lấy breadcrumbs từ gốc đến danh mục hiện tại' })
+  @SwaggerResponse({
+    status: 200,
+    description: 'Danh sách danh mục từ gốc đến danh mục hiện tại',
+    type: [CategoryResponse],
+  })
+  async getBreadcrumbs(
+    @Param('slugOrId') slugOrId: string,
+  ): Promise<ApiResponse<CategoryResponse[]>> {
+    const breadcrumbs = await this.getBreadcrumbsUseCase.execute(slugOrId);
+    return ok(breadcrumbs.map(toCategoryResponse));
   }
 
   @Get(':slugOrId')

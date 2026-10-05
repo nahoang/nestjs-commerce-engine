@@ -5,6 +5,8 @@ import { CategoryRepository } from './application/category.repository';
 import { CreateCategoryUseCase } from './application/create-category.use-case';
 import { GetCategoryUseCase } from './application/get-category.use-case';
 import { ListCategoriesUseCase } from './application/list-categories.use-case';
+import { GetCategoryTreeUseCase } from './application/get-category-tree.use-case';
+import { GetBreadcrumbsUseCase } from './application/get-breadcrumbs.use-case';
 import { PrismaCategoryRepository } from './infrastructure/prisma-category.repository';
 
 @Module({
@@ -14,6 +16,8 @@ import { PrismaCategoryRepository } from './infrastructure/prisma-category.repos
     CreateCategoryUseCase,
     GetCategoryUseCase,
     ListCategoriesUseCase,
+    GetCategoryTreeUseCase,
+    GetBreadcrumbsUseCase,
     {
       provide: CategoryRepository,
       useClass: PrismaCategoryRepository,
@@ -24,6 +28,8 @@ import { PrismaCategoryRepository } from './infrastructure/prisma-category.repos
     CreateCategoryUseCase,
     GetCategoryUseCase,
     ListCategoriesUseCase,
+    GetCategoryTreeUseCase,
+    GetBreadcrumbsUseCase,
   ],
 })
 export class CatalogModule {}

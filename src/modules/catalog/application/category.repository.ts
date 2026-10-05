@@ -11,4 +11,6 @@ export abstract class CategoryRepository {
   abstract list(params?: ListParams): Promise<Category[]>;
   abstract count(): Promise<number>;
   abstract save(entity: Category): Promise<void>;
+  abstract getSubtree(rootId: string | null): Promise<Category[]>;
+  abstract getAncestors(id: string): Promise<Category[]>;
 }

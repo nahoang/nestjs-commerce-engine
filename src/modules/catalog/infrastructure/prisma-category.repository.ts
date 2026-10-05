@@ -4,7 +4,7 @@ import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-pr
 import { ListParams } from '../../../shared/application/repository';
 import { Category } from '../domain/category.entity';
 import { CategoryRepository } from '../application/category.repository';
-import { CategoryMapper } from './category.mapper';
+import { CategoryMapper, RawCategoryRow } from './category.mapper';
 
 /**
  * Prisma implementation of CategoryRepository.
@@ -60,5 +60,49 @@ export class PrismaCategoryRepository implements CategoryRepository {
         updatedAt: new Date(),
       },
     });
+  }
+
+  /**
+   * Retrieves a category subtree (or entire tree if rootId is null) using a single Recursive CTE query.
+   * Parameterized via Prisma tagged template $queryRaw to prevent SQL injection.
+   */
+  async getSubtree(rootId: string | null): Promise<Category[]> {
+    const rows = await this.txHost.tx.$queryRaw<RawCategoryRow[]>`
+      WITH RECURSIVE category_tree AS (
+        SELECT id, name, slug, parent_id, is_active, created_at, updated_at
+        FROM categories
+        WHERE (${rootId}::text IS NULL AND parent_id IS NULL)
+           OR id = ${rootId}
+        UNION ALL
+        SELECT c.id, c.name, c.slug, c.parent_id, c.is_active, c.created_at, c.updated_at
+        FROM categories c
+        JOIN category_tree ct ON c.parent_id = ct.id
+      )
+      SELECT id, name, slug, parent_id, is_active, created_at, updated_at
+      FROM category_tree;
+    `;
+    return rows.map((r) => CategoryMapper.fromRawToDomain(r));
+  }
+
+  /**
+   * Retrieves ordered breadcrumb trail from root down to target category using a single upward Recursive CTE query.
+   * Sorts by depth DESC so root (highest depth) comes first, down to target leaf (depth 0).
+   */
+  async getAncestors(id: string): Promise<Category[]> {
+    const rows = await this.txHost.tx.$queryRaw<RawCategoryRow[]>`
+      WITH RECURSIVE category_breadcrumbs AS (
+        SELECT id, name, slug, parent_id, is_active, created_at, updated_at, 0 AS depth
+        FROM categories
+        WHERE id = ${id}
+        UNION ALL
+        SELECT c.id, c.name, c.slug, c.parent_id, c.is_active, c.created_at, c.updated_at, cb.depth + 1 AS depth
+        FROM categories c
+        JOIN category_breadcrumbs cb ON c.id = cb.parent_id
+      )
+      SELECT id, name, slug, parent_id, is_active, created_at, updated_at
+      FROM category_breadcrumbs
+      ORDER BY depth DESC;
+    `;
+    return rows.map((r) => CategoryMapper.fromRawToDomain(r));
   }
 }

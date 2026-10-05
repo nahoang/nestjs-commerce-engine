@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Category } from '../domain/category.entity';
+import { CategoryNode } from '../domain/tree';
 
 /**
  * Standard Category response shape.
@@ -42,6 +43,17 @@ export class CategoryResponse {
 }
 
 /**
+ * Hierarchical Category tree node response with nested children.
+ */
+export class CategoryNodeResponse extends CategoryResponse {
+  @ApiProperty({
+    description: 'Nested child category nodes',
+    type: () => [CategoryNodeResponse],
+  })
+  children!: CategoryNodeResponse[];
+}
+
+/**
  * Maps Category domain entity to external API CategoryResponse DTO.
  */
 export function toCategoryResponse(category: Category): CategoryResponse {
@@ -53,5 +65,17 @@ export function toCategoryResponse(category: Category): CategoryResponse {
     is_active: category.isActive,
     created_at: category.createdAt.toISOString(),
     updated_at: category.updatedAt.toISOString(),
+  };
+}
+
+/**
+ * Maps CategoryNode domain entity to external API CategoryNodeResponse DTO.
+ */
+export function toCategoryNodeResponse(
+  node: CategoryNode,
+): CategoryNodeResponse {
+  return {
+    ...toCategoryResponse(node.category),
+    children: node.children.map(toCategoryNodeResponse),
   };
 }
