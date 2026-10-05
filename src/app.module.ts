@@ -11,9 +11,14 @@ import { PrismaService } from './shared/infrastructure/prisma/prisma.service';
 import { PrismaModule } from './shared/infrastructure/prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { validate, AppConfigModule } from './shared/infrastructure/config';
+import { TestFixturesModule } from './test-fixtures/test-fixtures.module';
+
+const extraModules =
+  process.env.NODE_ENV !== 'production' ? [TestFixturesModule] : [];
 
 @Module({
   imports: [
+    ...extraModules,
     ConfigModule.forRoot({
       isGlobal: true,
       validate,

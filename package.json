@@ -20,7 +20,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "sync:contract": "bash scripts/sync-e2e.sh",
+    "test:contract": "bash scripts/e2e.sh"
   },
   "dependencies": {
     "@nestjs-cls/transactional": "^4.0.1",
