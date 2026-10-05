@@ -18,9 +18,9 @@ export default function globalSetup(): void {
     '../node_modules/prisma/build/index.js',
   );
 
-  // Synchronize Prisma schema into test database
+  // Deploy Prisma migrations into test database
   try {
-    execSync(`node "${prismaCliPath}" db push --skip-generate`, {
+    execSync(`node "${prismaCliPath}" migrate deploy`, {
       env: {
         ...process.env,
         DATABASE_URL: testDbUrl,
@@ -29,7 +29,7 @@ export default function globalSetup(): void {
     });
   } catch (error) {
     console.warn(
-      `[globalSetup] Database sync skipped: ${
+      `[globalSetup] Database migration deploy skipped: ${
         error instanceof Error ? error.message : String(error)
       }`,
     );
