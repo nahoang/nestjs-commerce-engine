@@ -5,6 +5,9 @@ import { randomUUID } from 'node:crypto';
 import { Request, Response } from 'express';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ClsPluginTransactional } from '@nestjs-cls/transactional';
+import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
+import { PrismaService } from './shared/infrastructure/prisma/prisma.service';
 import { PrismaModule } from './shared/infrastructure/prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { validate, AppConfigModule } from './shared/infrastructure/config';
@@ -36,6 +39,14 @@ import { validate, AppConfigModule } from './shared/infrastructure/config';
           }
         },
       },
+      plugins: [
+        new ClsPluginTransactional({
+          imports: [PrismaModule],
+          adapter: new TransactionalAdapterPrisma({
+            prismaInjectionToken: PrismaService,
+          }),
+        }),
+      ],
     }),
     PrismaModule,
     HealthModule,
