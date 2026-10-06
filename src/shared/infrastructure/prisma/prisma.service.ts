@@ -19,6 +19,14 @@ export class PrismaService
   }
 
   async onModuleInit(): Promise<void> {
+    // Opt-in SQL tracing for local debugging: LOG_SQL=true pnpm start:dev
+    if (process.env.LOG_SQL === 'true') {
+      this.$on('query', (event) => {
+        this.logger.debug(
+          `${event.query} -- params=${event.params} (${event.duration}ms)`,
+        );
+      });
+    }
     try {
       await this.$connect();
     } catch (error) {

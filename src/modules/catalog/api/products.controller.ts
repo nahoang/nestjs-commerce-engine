@@ -10,6 +10,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import {
+  ApiBody,
   ApiTags,
   ApiOperation,
   ApiResponse as SwaggerResponse,
@@ -45,6 +46,64 @@ function toVariantCommand(input: VariantInput): {
   };
 }
 
+// Ready-to-run scenarios for the Swagger "Examples" dropdown (see WIP step log, section 1.9.5)
+const CREATE_PRODUCT_EXAMPLES = {
+  A_success_with_variants: {
+    summary: 'A. Product with two variants (number price, lower-case currency)',
+    value: {
+      name: 'Ao Thun Cotton',
+      variants: [
+        { sku: 'TS-M', name: 'M', price_amount: '250000.00' },
+        { sku: 'TS-XL', name: 'XL', price_amount: 275000.5, currency: 'vnd' },
+      ],
+    },
+  },
+  A0_other_product: {
+    summary: 'Product without variants (use before scenario D)',
+    value: { name: 'Other product' },
+  },
+  E_duplicate_sku_in_payload: {
+    summary: 'E. Same SKU twice in one payload -> 409, nothing created',
+    value: {
+      name: 'Dup',
+      variants: [
+        { sku: 'D-1', name: 'A', price_amount: '1' },
+        { sku: 'D-1', name: 'B', price_amount: '2' },
+      ],
+    },
+  },
+  F_negative_price: {
+    summary: 'F. Negative price -> 422, no SQL',
+    value: {
+      name: 'Negative',
+      variants: [{ sku: 'N-1', name: 'A', price_amount: '-1' }],
+    },
+  },
+};
+
+const ADD_VARIANT_EXAMPLES = {
+  C_add_variant: {
+    summary: 'C. Add a variant to an existing product',
+    value: { sku: 'TS-L', name: 'L', price_amount: '19.9' },
+  },
+  D_sku_of_another_product: {
+    summary: 'D. SKU already used by another product -> 409',
+    value: { sku: 'TS-M', name: 'Duplicate', price_amount: '1' },
+  },
+  F_negative_price: {
+    summary: 'F. Negative price -> 422, no SQL',
+    value: { sku: 'TS-N', name: 'N', price_amount: '-1' },
+  },
+  G_bad_currency: {
+    summary: 'G. Invalid currency -> 422 (change "us" to "vnd" for 201)',
+    value: { sku: 'TS-C', name: 'C', price_amount: '1', currency: 'us' },
+  },
+  H_unknown_product: {
+    summary: 'H. Use productId 00000000-0000-0000-0000-000000000000 -> 404',
+    value: { sku: 'X-1', name: 'X', price_amount: '1' },
+  },
+};
+
 @ApiTags('Products')
 @Controller('api/v1/products')
 export class ProductsController {
@@ -58,6 +117,7 @@ export class ProductsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a product (draft by default)' })
+  @ApiBody({ type: CreateProductRequest, examples: CREATE_PRODUCT_EXAMPLES })
   @SwaggerResponse({
     status: 201,
     description: 'Product created successfully',
@@ -81,6 +141,7 @@ export class ProductsController {
   @Post(':productId/variants')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Add a variant to an existing product' })
+  @ApiBody({ type: VariantInput, examples: ADD_VARIANT_EXAMPLES })
   @SwaggerResponse({
     status: 201,
     description: 'Variant created successfully',

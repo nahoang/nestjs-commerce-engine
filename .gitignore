@@ -18,6 +18,7 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+!.vscode/launch.json
 
 # Private workspace (never committed)
 WIP/
