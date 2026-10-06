@@ -5,3 +5,5 @@ export * from './category.response';
 export * from './products.controller';
 export * from './create-product.request';
 export * from './product.response';
+export * from './variant-input';
+export * from './variant.response';

@@ -1,12 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsNotEmpty,
   IsOptional,
   IsString,
   Length,
+  ValidateNested,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+import { VariantInput } from './variant-input';
 
 /**
  * Request payload for creating a Product.
@@ -61,4 +65,17 @@ export class CreateProductRequest {
   @IsOptional()
   @IsBoolean({ message: 'is_published must be a boolean' })
   is_published?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Variants created together with the product (one transaction)',
+    type: [VariantInput],
+  })
+  @IsOptional()
+  @IsArray({ message: 'variants must be an array' })
+  @ArrayMaxSize(100, {
+    message: 'variants must not contain more than 100 items',
+  })
+  @ValidateNested({ each: true })
+  @Type(() => VariantInput)
+  variants?: VariantInput[];
 }

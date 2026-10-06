@@ -4,14 +4,19 @@ import {
   OnModuleDestroy,
   Logger,
 } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 @Injectable()
 export class PrismaService
-  extends PrismaClient
+  extends PrismaClient<Prisma.PrismaClientOptions, 'query'>
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(PrismaService.name);
+
+  constructor() {
+    // Emit query events (no console output) so tests can count statements per request
+    super({ log: [{ emit: 'event', level: 'query' }] });
+  }
 
   async onModuleInit(): Promise<void> {
     try {

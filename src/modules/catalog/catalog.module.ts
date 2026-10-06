@@ -11,6 +11,7 @@ import { PrismaCategoryRepository } from './infrastructure/prisma-category.repos
 import { ProductsController } from './api/products.controller';
 import { ProductRepository } from './application/product.repository';
 import { CreateProductUseCase } from './application/create-product.use-case';
+import { AddVariantUseCase } from './application/add-variant.use-case';
 import { GetProductUseCase } from './application/get-product.use-case';
 import { ListProductsUseCase } from './application/list-products.use-case';
 import { PrismaProductRepository } from './infrastructure/prisma-product.repository';
@@ -20,6 +21,7 @@ import { PrismaProductRepository } from './infrastructure/prisma-product.reposit
   controllers: [CategoriesController, ProductsController],
   providers: [
     CreateProductUseCase,
+    AddVariantUseCase,
     GetProductUseCase,
     ListProductsUseCase,
     {
@@ -39,6 +41,7 @@ import { PrismaProductRepository } from './infrastructure/prisma-product.reposit
   exports: [
     ProductRepository,
     CreateProductUseCase,
+    AddVariantUseCase,
     GetProductUseCase,
     ListProductsUseCase,
     CategoryRepository,

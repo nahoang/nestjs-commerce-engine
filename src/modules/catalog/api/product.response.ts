@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Product } from '../domain/product.entity';
+import { VariantResponse, toVariantResponse } from './variant.response';
 
 /**
  * Standard Product response shape (snake_case per API-CONVENTIONS §2).
@@ -29,6 +30,9 @@ export class ProductResponse {
   @ApiProperty({ description: 'Published status', example: false })
   is_published!: boolean;
 
+  @ApiProperty({ description: 'Product variants', type: [VariantResponse] })
+  variants!: VariantResponse[];
+
   @ApiProperty({
     description: 'Creation timestamp in ISO 8601 UTC format',
     example: '2026-10-06T12:00:00.000Z',
@@ -53,6 +57,7 @@ export function toProductResponse(product: Product): ProductResponse {
     category_id: product.categoryId,
     description: product.description,
     is_published: product.isPublished,
+    variants: product.variants.map(toVariantResponse),
     created_at: product.createdAt.toISOString(),
     updated_at: product.updatedAt.toISOString(),
   };

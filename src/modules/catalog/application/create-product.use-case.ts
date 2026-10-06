@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
+import Decimal from 'decimal.js';
 import { Product } from '../domain/product.entity';
 import { slugify } from '../domain/slugify';
 import { ProductRepository } from './product.repository';
@@ -9,12 +10,20 @@ import {
   EntityNotFoundException,
 } from '../../../shared/domain/exceptions';
 
+export interface VariantCommand {
+  sku: string;
+  name: string;
+  priceAmount: Decimal;
+  currency?: string;
+}
+
 export interface CreateProductCommand {
   name: string;
   slug?: string;
   categoryId?: string | null;
   description?: string | null;
   isPublished?: boolean;
+  variants?: VariantCommand[];
 }
 
 @Injectable()
@@ -59,6 +68,12 @@ export class CreateProductUseCase {
       isPublished: command.isPublished ?? false,
     });
 
+    // R2: duplicate SKUs inside the payload are rejected by the aggregate -> 409
+    for (const variant of command.variants ?? []) {
+      product.addVariant(variant);
+    }
+
+    // R7: product + variants are written inside this use case's single transaction
     await this.productRepo.save(product);
     return product;
   }
