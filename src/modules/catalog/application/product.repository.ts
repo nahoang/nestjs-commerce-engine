@@ -1,5 +1,6 @@
 import { ListParams } from '../../../shared/application/repository';
 import { Product } from '../domain/product.entity';
+import { ProductFilter } from './product-filter';
 import { ProductVariant } from '../domain/product-variant.entity';
 
 /**
@@ -15,8 +16,11 @@ export abstract class ProductRepository {
    */
   abstract findByIdForUpdate(id: string): Promise<Product | null>;
   abstract findBySlug(slug: string): Promise<Product | null>;
-  abstract list(params?: ListParams): Promise<Product[]>;
-  abstract count(): Promise<number>;
+  /** One page of products matching the filter, plus the total number of matches. */
+  abstract search(
+    filter: ProductFilter,
+    params: ListParams,
+  ): Promise<{ items: Product[]; total: number }>;
   /** Inserts a new product together with its variants (one atomic write). */
   abstract save(entity: Product): Promise<void>;
   /** Adds one variant to an existing product. Duplicate SKU -> DuplicateEntityException. */

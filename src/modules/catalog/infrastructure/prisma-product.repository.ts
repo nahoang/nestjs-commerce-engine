@@ -7,6 +7,7 @@ import { uniqueViolationTargets } from '../../../shared/infrastructure/prisma/pr
 import { DuplicateEntityException } from '../../../shared/domain/exceptions';
 import { Product } from '../domain/product.entity';
 import { ProductVariant } from '../domain/product-variant.entity';
+import { ProductFilter } from '../application/product-filter';
 import { ProductRepository } from '../application/product.repository';
 import { ProductMapper } from './product.mapper';
 
@@ -51,19 +52,89 @@ export class PrismaProductRepository implements ProductRepository {
     return record ? ProductMapper.toDomain(record) : null;
   }
 
-  // R5: deterministic order: created_at DESC, id DESC
-  async list(params?: ListParams): Promise<Product[]> {
+  /**
+   * Filtered, sorted page. Dynamic criteria are composed with Prisma.sql fragments, so every
+   * value (keyword, ids, prices, currency, limit, offset) is a bound parameter; only fixed
+   * SQL text is ever concatenated. Ids are selected first, then loaded with their variants.
+   */
+  async search(
+    filter: ProductFilter,
+    params: ListParams,
+  ): Promise<{ items: Product[]; total: number }> {
+    const usesPrice =
+      filter.minPrice !== undefined ||
+      filter.maxPrice !== undefined ||
+      filter.sortBy === 'price_asc' ||
+      filter.sortBy === 'price_desc';
+
+    // R5: a product's price is its lowest variant price in the requested currency;
+    // the inner join drops products with no variant in that currency
+    const priceJoin =
+      usesPrice && filter.currency !== undefined
+        ? Prisma.sql`JOIN (
+            SELECT product_id, MIN(price_amount) AS price
+            FROM product_variants
+            WHERE currency = ${filter.currency}
+            GROUP BY product_id
+          ) v ON v.product_id = p.id`
+        : Prisma.empty;
+
+    const conditions: Prisma.Sql[] = [];
+    if (filter.keyword !== undefined) {
+      // Escape LIKE wildcards so the keyword is matched literally
+      const pattern = `%${filter.keyword.replace(/[\\%_]/g, '\\$&')}%`;
+      conditions.push(
+        Prisma.sql`(p.name ILIKE ${pattern} OR p.description ILIKE ${pattern})`,
+      );
+    }
+    if (filter.categoryIds !== undefined) {
+      conditions.push(
+        Prisma.sql`p.category_id IN (${Prisma.join(filter.categoryIds)})`,
+      );
+    }
+    if (filter.isPublished !== undefined) {
+      conditions.push(Prisma.sql`p.is_published = ${filter.isPublished}`);
+    }
+    if (filter.minPrice !== undefined) {
+      conditions.push(Prisma.sql`v.price >= ${filter.minPrice}::numeric`);
+    }
+    if (filter.maxPrice !== undefined) {
+      conditions.push(Prisma.sql`v.price <= ${filter.maxPrice}::numeric`);
+    }
+    const where =
+      conditions.length > 0
+        ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+        : Prisma.empty;
+
+    // id DESC / created_at DESC tie-breakers keep pages deterministic
+    const orderBy = {
+      newest: Prisma.sql`p.created_at DESC, p.id DESC`,
+      name_asc: Prisma.sql`p.name ASC, p.id DESC`,
+      price_asc: Prisma.sql`v.price ASC, p.created_at DESC, p.id DESC`,
+      price_desc: Prisma.sql`v.price DESC, p.created_at DESC, p.id DESC`,
+    }[filter.sortBy];
+
+    const offset = params.offset ?? 0;
+    const limit = params.limit ?? 20;
+
+    const idRows = await this.txHost.tx.$queryRaw<Array<{ id: string }>>`
+      SELECT p.id FROM products p ${priceJoin} ${where}
+      ORDER BY ${orderBy} LIMIT ${limit} OFFSET ${offset}`;
+    const countRows = await this.txHost.tx.$queryRaw<Array<{ total: bigint }>>`
+      SELECT COUNT(*) AS total FROM products p ${priceJoin} ${where}`;
+    const total = Number(countRows[0].total);
+
+    const ids = idRows.map((row) => row.id);
+    if (ids.length === 0) {
+      return { items: [], total };
+    }
     const records = await this.txHost.tx.product.findMany({
-      skip: params?.offset ?? 0,
-      take: params?.limit ?? 20,
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      where: { id: { in: ids } },
       include: WITH_VARIANTS,
     });
-    return records.map((r) => ProductMapper.toDomain(r));
-  }
-
-  async count(): Promise<number> {
-    return this.txHost.tx.product.count();
+    const byId = new Map(records.map((r) => [r.id, r]));
+    const items = ids.map((id) => ProductMapper.toDomain(byId.get(id)!));
+    return { items, total };
   }
 
   /**

@@ -14,7 +14,6 @@ import {
   ApiOperation,
   ApiResponse as SwaggerResponse,
 } from '@nestjs/swagger';
-import { PaginationQueryDto } from '../../../shared/api/pagination.dto';
 import {
   ok,
   paginated,
@@ -26,7 +25,8 @@ import { CreateProductUseCase } from '../application/create-product.use-case';
 import { PublishProductUseCase } from '../application/publish-product.use-case';
 import { UnpublishProductUseCase } from '../application/unpublish-product.use-case';
 import { GetProductUseCase } from '../application/get-product.use-case';
-import { ListProductsUseCase } from '../application/list-products.use-case';
+import { SearchProductsUseCase } from '../application/search-products.use-case';
+import { ListProductsQueryDto } from './list-products-query.dto';
 import { CreateProductRequest } from './create-product.request';
 import { VariantInput } from './variant-input';
 import { VariantResponse, toVariantResponse } from './variant.response';
@@ -130,7 +130,7 @@ export class ProductsController {
     private readonly publishProductUseCase: PublishProductUseCase,
     private readonly unpublishProductUseCase: UnpublishProductUseCase,
     private readonly getProductUseCase: GetProductUseCase,
-    private readonly listProductsUseCase: ListProductsUseCase,
+    private readonly searchProductsUseCase: SearchProductsUseCase,
   ) {}
 
   @Post()
@@ -210,15 +210,28 @@ export class ProductsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List products (offset pagination)' })
+  @ApiOperation({
+    summary: 'List and search products (filters, sorting, offset pagination)',
+  })
   @SwaggerResponse({
     status: 200,
-    description: 'Paginated list of products',
+    description: 'Paginated list of products matching all given filters',
   })
   async list(
-    @Query() query: PaginationQueryDto,
+    @Query() query: ListProductsQueryDto,
   ): Promise<PaginatedResponse<ProductResponse>> {
-    const { items, total } = await this.listProductsUseCase.execute(query);
+    const { items, total } = await this.searchProductsUseCase.execute(
+      {
+        keyword: query.keyword,
+        categoryId: query.category_id,
+        minPrice: query.min_price,
+        maxPrice: query.max_price,
+        currency: query.currency,
+        isPublished: query.is_published,
+        sortBy: query.sort_by,
+      },
+      { limit: query.limit, offset: query.offset },
+    );
     return paginated(
       items.map(toProductResponse),
       total,

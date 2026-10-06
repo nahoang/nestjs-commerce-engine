@@ -15,7 +15,7 @@ import { AddVariantUseCase } from './application/add-variant.use-case';
 import { PublishProductUseCase } from './application/publish-product.use-case';
 import { UnpublishProductUseCase } from './application/unpublish-product.use-case';
 import { GetProductUseCase } from './application/get-product.use-case';
-import { ListProductsUseCase } from './application/list-products.use-case';
+import { SearchProductsUseCase } from './application/search-products.use-case';
 import { PrismaProductRepository } from './infrastructure/prisma-product.repository';
 
 @Module({
@@ -27,7 +27,7 @@ import { PrismaProductRepository } from './infrastructure/prisma-product.reposit
     PublishProductUseCase,
     UnpublishProductUseCase,
     GetProductUseCase,
-    ListProductsUseCase,
+    SearchProductsUseCase,
     {
       provide: ProductRepository,
       useClass: PrismaProductRepository,
@@ -49,7 +49,7 @@ import { PrismaProductRepository } from './infrastructure/prisma-product.reposit
     PublishProductUseCase,
     UnpublishProductUseCase,
     GetProductUseCase,
-    ListProductsUseCase,
+    SearchProductsUseCase,
     CategoryRepository,
     CreateCategoryUseCase,
     GetCategoryUseCase,
