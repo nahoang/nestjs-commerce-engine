@@ -4,6 +4,7 @@ import {
   DuplicateEntityException,
   InsufficientStockException,
   InvalidOperationException,
+  InvalidValueException,
 } from './exceptions';
 
 describe('Domain Exceptions', () => {
@@ -88,6 +89,20 @@ describe('Domain Exceptions', () => {
       );
 
       expect(ex.errorCode).toBe('INVALID_STATE_TRANSITION');
+    });
+  });
+
+  describe('InvalidValueException', () => {
+    it('defaults errorCode to VALIDATION_ERROR and keeps the field', () => {
+      const ex = new InvalidValueException('slug is invalid', 'slug');
+
+      expect(ex).toBeInstanceOf(DomainException);
+      expect(ex.errorCode).toBe('VALIDATION_ERROR');
+      expect(ex.field).toBe('slug');
+    });
+
+    it('works without a field', () => {
+      expect(new InvalidValueException('bad').field).toBeUndefined();
     });
   });
 });

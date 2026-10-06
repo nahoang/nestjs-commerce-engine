@@ -1,4 +1,5 @@
 import { Category } from './category.entity';
+import { Slug } from './slug';
 import { buildTree } from './tree';
 
 describe('buildTree (domain pure function) — DOMAIN-SPEC-1-CATALOG § 1.2', () => {
@@ -11,7 +12,7 @@ describe('buildTree (domain pure function) — DOMAIN-SPEC-1-CATALOG § 1.2', ()
     return new Category({
       id,
       name,
-      slug,
+      slug: Slug.create(slug),
       parentId,
       isActive: true,
       createdAt: new Date('2026-01-01T00:00:00Z'),

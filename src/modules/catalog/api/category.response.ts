@@ -60,7 +60,7 @@ export function toCategoryResponse(category: Category): CategoryResponse {
   return {
     id: category.id,
     name: category.name,
-    slug: category.slug,
+    slug: category.slug.value,
     parent_id: category.parentId,
     is_active: category.isActive,
     created_at: category.createdAt.toISOString(),

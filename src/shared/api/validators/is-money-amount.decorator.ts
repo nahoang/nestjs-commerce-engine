@@ -1,15 +1,16 @@
 import { applyDecorators } from '@nestjs/common';
 import { Transform } from 'class-transformer';
-import { Matches } from 'class-validator';
-
-// NUMERIC(12,2): up to 10 integer digits, at most 2 fraction digits, no sign/exponent
-const MONEY_AMOUNT_PATTERN = /^\d{1,10}(\.\d{1,2})?$/;
+import {
+  parseCurrencyCode,
+  parseMoneyAmount,
+} from '../../domain/value-objects/money';
+import { ValueObjectValid } from './value-object.validator';
 
 /**
- * Validates a monetary amount sent as a decimal string (or a JSON number).
- * The value stays a string end to end; the application converts it with
- * `new Decimal(string)`, so no arithmetic ever happens on a JS number.
- * Numbers are only stringified (exponent forms such as 1e21 then fail the pattern).
+ * Validates a monetary amount sent as a decimal string (or a JSON number) with the
+ * same rules as the Money value object. The value stays a string end to end; the
+ * domain converts it with `new Decimal(string)`, so no arithmetic ever happens on a
+ * JS number. Numbers are only stringified (exponent forms such as 1e21 then fail).
  */
 export function IsMoneyAmount(): PropertyDecorator {
   return applyDecorators(
@@ -19,9 +20,11 @@ export function IsMoneyAmount(): PropertyDecorator {
       }
       return typeof value === 'string' ? value.trim() : value;
     }),
-    Matches(MONEY_AMOUNT_PATTERN, {
-      message:
-        'amount must be a non-negative decimal with at most 2 decimal places',
-    }),
+    ValueObjectValid(parseMoneyAmount),
   );
+}
+
+/** Validates a currency code with the Money value object's rule (trim + upper case, 3 letters). */
+export function IsCurrencyCode(): PropertyDecorator {
+  return ValueObjectValid(parseCurrencyCode);
 }

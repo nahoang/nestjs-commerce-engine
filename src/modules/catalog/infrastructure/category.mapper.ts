@@ -1,5 +1,6 @@
 import { Category as PrismaCategory, Prisma } from '@prisma/client';
 import { Category } from '../domain/category.entity';
+import { Slug } from '../domain/slug';
 
 /**
  * Raw database row shape returned by raw SQL queries (WITH RECURSIVE).
@@ -23,7 +24,7 @@ export class CategoryMapper {
     return new Category({
       id: record.id,
       name: record.name,
-      slug: record.slug,
+      slug: Slug.create(record.slug),
       parentId: record.parentId,
       isActive: record.isActive,
       createdAt: record.createdAt,
@@ -35,7 +36,7 @@ export class CategoryMapper {
     return new Category({
       id: row.id,
       name: row.name,
-      slug: row.slug,
+      slug: Slug.create(row.slug),
       parentId: row.parent_id,
       isActive: row.is_active,
       createdAt: new Date(row.created_at),
@@ -47,7 +48,7 @@ export class CategoryMapper {
     return {
       id: entity.id,
       name: entity.name,
-      slug: entity.slug,
+      slug: entity.slug.value,
       parentId: entity.parentId,
       isActive: entity.isActive,
       createdAt: entity.createdAt,

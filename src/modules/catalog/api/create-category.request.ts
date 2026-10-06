@@ -7,6 +7,7 @@ import {
   Length,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { IsSlug } from './catalog-validators';
 
 /**
  * Request payload for creating a Category.
@@ -30,10 +31,10 @@ export class CreateCategoryRequest {
     example: 'thoi-trang',
   })
   @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim() : value,
+    typeof value === 'string' ? value.trim() || undefined : value,
   )
   @IsOptional()
-  @IsString({ message: 'slug must be a string' })
+  @IsSlug()
   slug?: string;
 
   @ApiPropertyOptional({

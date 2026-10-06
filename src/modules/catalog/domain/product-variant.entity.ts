@@ -1,44 +1,42 @@
-import Decimal from 'decimal.js';
 import { BaseEntity } from '../../../shared/domain/base-entity';
+import { Money } from '../../../shared/domain/value-objects/money';
+import { Sku } from './sku';
 
 export const DEFAULT_CURRENCY = 'USD';
 
 export interface ProductVariantProps {
   id?: string;
   productId: string;
-  sku: string;
+  sku: Sku;
   name: string;
-  priceAmount: Decimal;
-  currency?: string;
+  price: Money;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 /**
- * Sellable variant of a product (e.g. size M). The price is an exact Decimal,
- * never a JS number. Pure TypeScript: no ORM or framework dependencies.
+ * Sellable variant of a product (e.g. size M). The price is a Money value object
+ * (exact decimal, never a JS number). Pure TypeScript: no ORM or framework dependencies.
  */
 export class ProductVariant extends BaseEntity {
   private readonly _productId: string;
-  private readonly _sku: string;
+  private readonly _sku: Sku;
   private readonly _name: string;
-  private readonly _priceAmount: Decimal;
-  private readonly _currency: string;
+  private readonly _price: Money;
 
   constructor(props: ProductVariantProps) {
     super(props.id, props.createdAt, props.updatedAt);
     this._productId = props.productId;
     this._sku = props.sku;
     this._name = props.name;
-    this._priceAmount = props.priceAmount;
-    this._currency = (props.currency ?? DEFAULT_CURRENCY).toUpperCase();
+    this._price = props.price;
   }
 
   get productId(): string {
     return this._productId;
   }
 
-  get sku(): string {
+  get sku(): Sku {
     return this._sku;
   }
 
@@ -46,11 +44,7 @@ export class ProductVariant extends BaseEntity {
     return this._name;
   }
 
-  get priceAmount(): Decimal {
-    return this._priceAmount;
-  }
-
-  get currency(): string {
-    return this._currency;
+  get price(): Money {
+    return this._price;
   }
 }

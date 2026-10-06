@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
-import { ProductVariant } from '../domain/product-variant.entity';
+import { Money } from '../../../shared/domain/value-objects/money';
+import {
+  DEFAULT_CURRENCY,
+  ProductVariant,
+} from '../domain/product-variant.entity';
+import { Sku } from '../domain/sku';
 import { ProductRepository } from './product.repository';
 import { EntityNotFoundException } from '../../../shared/domain/exceptions';
 import { VariantCommand } from './create-product.use-case';
@@ -15,14 +20,24 @@ export class AddVariantUseCase {
 
   @Transactional()
   async execute(command: AddVariantCommand): Promise<ProductVariant> {
-    // Unknown product -> 404 ENTITY_NOT_FOUND
-    const product = await this.productRepo.findById(command.productId);
+    // Unknown product -> 404 ENTITY_NOT_FOUND. The row lock serializes concurrent changes
+    // to the aggregate, so rules that look at sibling variants (one currency per product)
+    // are always checked against up-to-date data.
+    const product = await this.productRepo.findByIdForUpdate(command.productId);
     if (!product) {
       throw new EntityNotFoundException('Product', command.productId);
     }
 
-    // R2 within the product; R1 (system-wide SKU) is enforced by the unique index
-    const variant = product.addVariant(command);
+    // The aggregate enforces SKU uniqueness within the product (409) and one
+    // currency per product (400); system-wide SKU uniqueness is the unique index
+    const variant = product.addVariant({
+      sku: Sku.create(command.sku),
+      name: command.name,
+      price: Money.create(
+        command.priceAmount,
+        command.currency ?? DEFAULT_CURRENCY,
+      ),
+    });
     await this.productRepo.addVariant(variant);
     return variant;
   }

@@ -43,7 +43,7 @@ describe('Product variants (e2e) — DOMAIN-SPEC-1-CATALOG § 1.4', () => {
       variants: [
         { sku: 'TS-M', name: 'M', price_amount: '250000.00' },
         { sku: 'TS-L', name: 'L', price_amount: '250000' },
-        { sku: 'TS-XL', name: 'XL', price_amount: 275000.5, currency: 'vnd' },
+        { sku: 'TS-XL', name: 'XL', price_amount: 275000.5, currency: 'usd' },
       ],
     }).expect(201);
 
@@ -62,7 +62,8 @@ describe('Product variants (e2e) — DOMAIN-SPEC-1-CATALOG § 1.4', () => {
     expect(byName['L'].price_amount).toBe('250000.00');
     expect(byName['XL'].price_amount).toBe('275000.50');
     expect(byName['M'].currency).toBe('USD');
-    expect(byName['XL'].currency).toBe('VND');
+    // lower-case 'usd' is normalized; all variants of a product share one currency (1.5 R4)
+    expect(byName['XL'].currency).toBe('USD');
     expect(variants.every((v) => v.product_id === created.id)).toBe(true);
   });
 

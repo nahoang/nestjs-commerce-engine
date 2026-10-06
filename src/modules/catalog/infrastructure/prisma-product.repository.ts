@@ -35,6 +35,14 @@ export class PrismaProductRepository implements ProductRepository {
     return record ? ProductMapper.toDomain(record) : null;
   }
 
+  async findByIdForUpdate(id: string): Promise<Product | null> {
+    // Lock first, then read: the read below sees every change committed before the lock was granted
+    const locked = await this.txHost.tx.$queryRaw<
+      Array<{ id: string }>
+    >`SELECT id FROM products WHERE id = ${id} FOR UPDATE`;
+    return locked.length > 0 ? this.findById(id) : null;
+  }
+
   async findBySlug(slug: string): Promise<Product | null> {
     const record = await this.txHost.tx.product.findUnique({
       where: { slug },
@@ -82,7 +90,7 @@ export class PrismaProductRepository implements ProductRepository {
           categoryId: data.categoryId,
           description: data.description,
           isPublished: data.isPublished,
-          updatedAt: new Date(),
+          updatedAt: data.updatedAt,
         },
       });
     } catch (error) {

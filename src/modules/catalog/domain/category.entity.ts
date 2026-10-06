@@ -1,9 +1,10 @@
 import { BaseEntity } from '../../../shared/domain/base-entity';
+import { Slug } from './slug';
 
 export interface CategoryProps {
   id?: string;
   name: string;
-  slug: string;
+  slug: Slug;
   parentId?: string | null;
   isActive?: boolean;
   createdAt?: Date;
@@ -16,7 +17,7 @@ export interface CategoryProps {
  */
 export class Category extends BaseEntity {
   private _name: string;
-  private _slug: string;
+  private _slug: Slug;
   private _parentId: string | null;
   private _isActive: boolean;
 
@@ -32,7 +33,7 @@ export class Category extends BaseEntity {
     return this._name;
   }
 
-  get slug(): string {
+  get slug(): Slug {
     return this._slug;
   }
 

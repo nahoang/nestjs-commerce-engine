@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
-import Decimal from 'decimal.js';
+import { Money } from '../../../shared/domain/value-objects/money';
 import { Product } from '../domain/product.entity';
-import { slugify } from '../domain/slugify';
+import { DEFAULT_CURRENCY } from '../domain/product-variant.entity';
+import { Sku } from '../domain/sku';
+import { Slug } from '../domain/slug';
 import { ProductRepository } from './product.repository';
 import { CategoryRepository } from './category.repository';
 import {
@@ -10,10 +12,11 @@ import {
   EntityNotFoundException,
 } from '../../../shared/domain/exceptions';
 
+/** Raw variant input; the value objects (Sku, Money) are built and validated here. */
 export interface VariantCommand {
   sku: string;
   name: string;
-  priceAmount: Decimal;
+  priceAmount: string;
   currency?: string;
 }
 
@@ -37,21 +40,21 @@ export class CreateProductUseCase {
   async execute(command: CreateProductCommand): Promise<Product> {
     const trimmedName = command.name.trim();
 
-    // R1: no slug supplied -> generate one from the name
-    const finalSlug =
-      command.slug && command.slug.trim().length > 0
-        ? command.slug.trim()
-        : slugify(trimmedName);
+    // R1: no slug supplied -> generate one from the name; a supplied slug must already be valid
+    const suppliedSlug = command.slug?.trim();
+    const finalSlug = suppliedSlug
+      ? Slug.create(suppliedSlug)
+      : Slug.fromName(trimmedName);
 
-    // R1: slug is unique across all products -> 409 DUPLICATE_ENTITY
-    const existing = await this.productRepo.findBySlug(finalSlug);
+    // Slug is unique across all products -> 409 DUPLICATE_ENTITY
+    const existing = await this.productRepo.findBySlug(finalSlug.value);
     if (existing) {
       throw new DuplicateEntityException(
-        `Product with slug '${finalSlug}' already exists`,
+        `Product with slug '${finalSlug.value}' already exists`,
       );
     }
 
-    // R2: category_id (if given) must exist -> 404 ENTITY_NOT_FOUND
+    // category_id (if given) must exist -> 404 ENTITY_NOT_FOUND
     if (command.categoryId) {
       const category = await this.categoryRepo.findById(command.categoryId);
       if (!category) {
@@ -59,21 +62,31 @@ export class CreateProductUseCase {
       }
     }
 
-    // R3: new products default to draft
+    // New products are drafts; publication goes through the aggregate (rule R3)
     const product = new Product({
       name: trimmedName,
       slug: finalSlug,
       categoryId: command.categoryId ?? null,
       description: command.description ?? null,
-      isPublished: command.isPublished ?? false,
     });
 
-    // R2: duplicate SKUs inside the payload are rejected by the aggregate -> 409
-    for (const variant of command.variants ?? []) {
-      product.addVariant(variant);
+    // The aggregate enforces unique SKUs (409) and a single currency (400)
+    command.variants?.forEach((variant, index) => {
+      product.addVariant({
+        sku: Sku.create(variant.sku, `variants.${index}.sku`),
+        name: variant.name,
+        price: Money.create(
+          variant.priceAmount,
+          variant.currency ?? DEFAULT_CURRENCY,
+        ),
+      });
+    });
+
+    if (command.isPublished) {
+      product.publish();
     }
 
-    // R7: product + variants are written inside this use case's single transaction
+    // One transaction for the product and all its variants (R7 of 1.4)
     await this.productRepo.save(product);
     return product;
   }

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 import { Category } from '../domain/category.entity';
-import { slugify } from '../domain/slugify';
+import { Slug } from '../domain/slug';
 import { CategoryRepository } from './category.repository';
 import {
   DuplicateEntityException,
@@ -23,17 +23,17 @@ export class CreateCategoryUseCase {
   async execute(command: CreateCategoryCommand): Promise<Category> {
     const trimmedName = command.name.trim();
 
-    // R2: no slug supplied -> generate one from the name; otherwise trim it
-    const finalSlug =
-      command.slug && command.slug.trim().length > 0
-        ? command.slug.trim()
-        : slugify(trimmedName);
+    // R2: no slug supplied -> generate one from the name; a supplied slug must already be valid
+    const suppliedSlug = command.slug?.trim();
+    const finalSlug = suppliedSlug
+      ? Slug.create(suppliedSlug)
+      : Slug.fromName(trimmedName);
 
     // R1: slug is unique across all categories -> 409 DUPLICATE_ENTITY
-    const existing = await this.categoryRepo.findBySlug(finalSlug);
+    const existing = await this.categoryRepo.findBySlug(finalSlug.value);
     if (existing) {
       throw new DuplicateEntityException(
-        `Category with slug '${finalSlug}' already exists`,
+        `Category with slug '${finalSlug.value}' already exists`,
       );
     }
 

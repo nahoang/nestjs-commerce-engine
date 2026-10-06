@@ -53,7 +53,7 @@ export function toProductResponse(product: Product): ProductResponse {
   return {
     id: product.id,
     name: product.name,
-    slug: product.slug,
+    slug: product.slug.value,
     category_id: product.categoryId,
     description: product.description,
     is_published: product.isPublished,

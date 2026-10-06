@@ -9,7 +9,7 @@ Content-Type: application/json
     "variants": [
         {"sku": "V14-M-{{run_id}}", "name": "M", "price_amount": "250000.00"},
         {"sku": "V14-L-{{run_id}}", "name": "L", "price_amount": "250000"},
-        {"sku": "V14-XL-{{run_id}}", "name": "XL", "price_amount": "275000.5", "currency": "vnd"}
+        {"sku": "V14-XL-{{run_id}}", "name": "XL", "price_amount": "275000.5", "currency": "usd"}
     ]
 }
 HTTP 201
@@ -28,7 +28,7 @@ jsonpath "$.data.variants[?(@.name=='M')].price_amount" nth 0 == "250000.00"
 jsonpath "$.data.variants[?(@.name=='L')].price_amount" nth 0 == "250000.00"
 jsonpath "$.data.variants[?(@.name=='XL')].price_amount" nth 0 == "275000.50"
 jsonpath "$.data.variants[?(@.name=='M')].currency" nth 0 == "USD"
-jsonpath "$.data.variants[?(@.name=='XL')].currency" nth 0 == "VND"
+jsonpath "$.data.variants[?(@.name=='XL')].currency" nth 0 == "USD"
 jsonpath "$.data.variants[?(@.name=='M')].product_id" nth 0 == "{{product_id}}"
 
 # 2. Hai biến thể cùng SKU trong một payload -> 409, không sản phẩm nào được tạo
@@ -117,8 +117,17 @@ HTTP 422
 jsonpath "$.error_code" == "VALIDATION_ERROR"
 jsonpath "$.errors[0].field" == "currency"
 
-# 4c. currency = "vnd" -> lưu "VND"
-POST {{base_url}}/api/v1/products/{{other_product_id}}/variants
+# 4c. currency = "vnd" -> lưu "VND" (sản phẩm riêng: mọi biến thể của một sản phẩm cùng tiền tệ)
+POST {{base_url}}/api/v1/products
+Content-Type: application/json
+{
+    "name": "Sản Phẩm VND {{run_id}}"
+}
+HTTP 201
+[Captures]
+vnd_product_id: jsonpath "$.data.id"
+
+POST {{base_url}}/api/v1/products/{{vnd_product_id}}/variants
 Content-Type: application/json
 {
     "sku": "V14-VND-{{run_id}}",

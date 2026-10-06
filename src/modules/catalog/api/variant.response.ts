@@ -34,10 +34,10 @@ export function toVariantResponse(variant: ProductVariant): VariantResponse {
   return {
     id: variant.id,
     product_id: variant.productId,
-    sku: variant.sku,
+    sku: variant.sku.value,
     name: variant.name,
-    price_amount: variant.priceAmount.toFixed(2),
-    currency: variant.currency,
+    price_amount: variant.price.amount.toFixed(2),
+    currency: variant.price.currency,
     created_at: variant.createdAt.toISOString(),
     updated_at: variant.updatedAt.toISOString(),
   };

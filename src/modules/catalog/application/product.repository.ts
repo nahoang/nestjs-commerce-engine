@@ -8,6 +8,12 @@ import { ProductVariant } from '../domain/product-variant.entity';
  */
 export abstract class ProductRepository {
   abstract findById(id: string): Promise<Product | null>;
+  /**
+   * Loads the product (with variants) and holds a row lock until the surrounding
+   * transaction ends, so concurrent changes to the same aggregate are serialized.
+   * Must be called inside a transaction (use case `@Transactional()`).
+   */
+  abstract findByIdForUpdate(id: string): Promise<Product | null>;
   abstract findBySlug(slug: string): Promise<Product | null>;
   abstract list(params?: ListParams): Promise<Product[]>;
   abstract count(): Promise<number>;

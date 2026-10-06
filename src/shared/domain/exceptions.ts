@@ -61,3 +61,21 @@ export class InvalidOperationException extends DomainException {
     super(message, errorCode);
   }
 }
+
+/**
+ * Thrown when a value (e.g. a value object's raw input) violates its invariant.
+ * Maps to HTTP 422 with error_code 'VALIDATION_ERROR' in API layer.
+ * `field` names the offending input property when the caller knows it.
+ */
+export class InvalidValueException extends DomainException {
+  readonly field?: string;
+
+  constructor(
+    message: string,
+    field?: string,
+    errorCode: string = 'VALIDATION_ERROR',
+  ) {
+    super(message, errorCode);
+    this.field = field;
+  }
+}

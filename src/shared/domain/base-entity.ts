@@ -7,13 +7,22 @@
 export abstract class BaseEntity {
   readonly id: string;
   readonly createdAt: Date;
-  readonly updatedAt: Date;
+  private _updatedAt: Date;
 
   protected constructor(id?: string, createdAt?: Date, updatedAt?: Date) {
     this.id = id ?? crypto.randomUUID();
     const now = new Date();
     this.createdAt = createdAt ?? now;
-    this.updatedAt = updatedAt ?? now;
+    this._updatedAt = updatedAt ?? now;
+  }
+
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
+
+  /** Marks the entity as modified; call from every state-changing behavior. */
+  protected touch(): void {
+    this._updatedAt = new Date();
   }
 
   /**

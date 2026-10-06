@@ -38,12 +38,25 @@ describe('VariantInput validation', () => {
     ]);
   });
 
-  it('normalizes currency to upper case and rejects invalid codes', () => {
-    const ok = plainToInstance(VariantInput, { ...valid, currency: 'vnd' });
-    expect(validateSync(ok)).toEqual([]);
-    expect(ok.currency).toBe('VND');
-
+  it('accepts any-case 3-letter currency (Money normalizes it) and rejects invalid codes', () => {
+    expect(errorsFor({ ...valid, currency: 'vnd' })).toEqual([]);
+    expect(errorsFor({ ...valid, currency: 'VND' })).toEqual([]);
     expect(errorsFor({ ...valid, currency: 'us' })).toEqual(['currency']);
     expect(errorsFor({ ...valid, currency: 'USDX' })).toEqual(['currency']);
+    expect(errorsFor({ ...valid, currency: 5 })).toEqual(['currency']);
   });
+
+  it.each(['ts-m', 'TS-M', '  ts_m_01  ', 'A'])(
+    'accepts sku %p (case-insensitive)',
+    (sku) => {
+      expect(errorsFor({ ...valid, sku })).toEqual([]);
+    },
+  );
+
+  it.each(['', 'ts m', '-ts', 'a/b', 'A'.repeat(101), 7])(
+    'rejects sku %p with the property name as field',
+    (sku) => {
+      expect(errorsFor({ ...valid, sku })).toEqual(['sku']);
+    },
+  );
 });

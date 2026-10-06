@@ -1,13 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Length,
-  Matches,
-} from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { IsMoneyAmount } from '../../../shared/api/validators/is-money-amount.decorator';
+import {
+  IsCurrencyCode,
+  IsMoneyAmount,
+} from '../../../shared/api/validators/is-money-amount.decorator';
+import { IsSku } from './catalog-validators';
 
 const trim = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim() : value;
@@ -15,13 +13,16 @@ const trim = ({ value }: { value: unknown }): unknown =>
 /**
  * Request payload for one product variant (used both nested in CreateProductRequest
  * and as the body of POST /products/:productId/variants).
+ * sku, price_amount and currency are validated by the Sku and Money value objects.
  */
 export class VariantInput {
-  @ApiProperty({ description: 'Globally unique SKU (1..100)', example: 'TS-M' })
+  @ApiProperty({
+    description:
+      'Globally unique SKU, case-insensitive (stored upper-cased, 1..100 chars)',
+    example: 'TS-M',
+  })
   @Transform(trim)
-  @IsNotEmpty({ message: 'sku must not be empty' })
-  @IsString({ message: 'sku must be a string' })
-  @Length(1, 100, { message: 'sku length must be between 1 and 100' })
+  @IsSku()
   sku!: string;
 
   @ApiProperty({ description: 'Variant name (1..255)', example: 'Size M' })
@@ -39,16 +40,12 @@ export class VariantInput {
   price_amount!: string;
 
   @ApiPropertyOptional({
-    description: 'ISO 4217 currency code (normalized to upper case)',
+    description:
+      'ISO 4217 currency code (normalized to upper case); every variant of a product shares one currency',
     default: 'USD',
     example: 'VND',
   })
-  @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim().toUpperCase() : value,
-  )
   @IsOptional()
-  @Matches(/^[A-Z]{3}$/, {
-    message: 'currency must be a 3-letter ISO 4217 code',
-  })
+  @IsCurrencyCode()
   currency?: string;
 }

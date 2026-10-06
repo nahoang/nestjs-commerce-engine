@@ -19,7 +19,7 @@ export class CategoryNode {
   }
 
   get slug(): string {
-    return this.category.slug;
+    return this.category.slug.value;
   }
 
   get parentId(): string | null {
@@ -80,8 +80,8 @@ export function buildTree(flat: Category[]): CategoryNode[] {
 
   // 3. Helper to sort siblings ascending by slug (ASCII order) and freeze into CategoryNode
   const compareBySlug = (a: MutableNode, b: MutableNode): number => {
-    if (a.category.slug < b.category.slug) return -1;
-    if (a.category.slug > b.category.slug) return 1;
+    if (a.category.slug.value < b.category.slug.value) return -1;
+    if (a.category.slug.value > b.category.slug.value) return 1;
     return 0;
   };
 

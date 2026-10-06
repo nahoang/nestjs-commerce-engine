@@ -11,6 +11,7 @@ import {
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { VariantInput } from './variant-input';
+import { IsSlug } from './catalog-validators';
 
 /**
  * Request payload for creating a Product.
@@ -30,15 +31,15 @@ export class CreateProductRequest {
   name!: string;
 
   @ApiPropertyOptional({
-    description: 'Optional custom URL-friendly slug',
+    description:
+      'Optional custom slug: lower-case letters and digits separated by single hyphens (never auto-corrected)',
     example: 'ao-thun-cotton-nam',
   })
   @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim() : value,
+    typeof value === 'string' ? value.trim() || undefined : value,
   )
   @IsOptional()
-  @IsString({ message: 'slug must be a string' })
-  @Length(1, 255, { message: 'slug length must be between 1 and 255' })
+  @IsSlug()
   slug?: string;
 
   @ApiPropertyOptional({

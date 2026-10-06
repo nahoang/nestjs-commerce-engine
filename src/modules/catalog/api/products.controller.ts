@@ -1,4 +1,3 @@
-import Decimal from 'decimal.js';
 import {
   Controller,
   Get,
@@ -24,6 +23,8 @@ import {
 } from '../../../shared/api/envelope';
 import { AddVariantUseCase } from '../application/add-variant.use-case';
 import { CreateProductUseCase } from '../application/create-product.use-case';
+import { PublishProductUseCase } from '../application/publish-product.use-case';
+import { UnpublishProductUseCase } from '../application/unpublish-product.use-case';
 import { GetProductUseCase } from '../application/get-product.use-case';
 import { ListProductsUseCase } from '../application/list-products.use-case';
 import { CreateProductRequest } from './create-product.request';
@@ -31,17 +32,17 @@ import { VariantInput } from './variant-input';
 import { VariantResponse, toVariantResponse } from './variant.response';
 import { ProductResponse, toProductResponse } from './product.response';
 
-// price_amount stays a validated decimal string until here; Decimal parses it exactly
+// The controller only maps the DTO to a command; Sku and Money are built in the use case
 function toVariantCommand(input: VariantInput): {
   sku: string;
   name: string;
-  priceAmount: Decimal;
+  priceAmount: string;
   currency?: string;
 } {
   return {
     sku: input.sku,
     name: input.name,
-    priceAmount: new Decimal(input.price_amount),
+    priceAmount: input.price_amount,
     currency: input.currency,
   };
 }
@@ -54,7 +55,7 @@ const CREATE_PRODUCT_EXAMPLES = {
       name: 'Ao Thun Cotton',
       variants: [
         { sku: 'TS-M', name: 'M', price_amount: '250000.00' },
-        { sku: 'TS-XL', name: 'XL', price_amount: 275000.5, currency: 'vnd' },
+        { sku: 'TS-XL', name: 'XL', price_amount: 275000.5, currency: 'usd' },
       ],
     },
   },
@@ -71,6 +72,14 @@ const CREATE_PRODUCT_EXAMPLES = {
         { sku: 'D-1', name: 'B', price_amount: '2' },
       ],
     },
+  },
+  I_invalid_slug: {
+    summary: 'I. Slug with capitals and a space -> 422 on field slug',
+    value: { name: 'Ao Thun', slug: 'Ao Thun' },
+  },
+  M_publish_without_variants: {
+    summary: 'M. is_published=true without variants -> 400 INVALID_OPERATION',
+    value: { name: 'Draft only', is_published: true },
   },
   F_negative_price: {
     summary: 'F. Negative price -> 422, no SQL',
@@ -94,8 +103,16 @@ const ADD_VARIANT_EXAMPLES = {
     summary: 'F. Negative price -> 422, no SQL',
     value: { sku: 'TS-N', name: 'N', price_amount: '-1' },
   },
+  J_lowercase_duplicate_sku: {
+    summary: 'J. "ts-m" when TS-M exists -> 409 (SKUs ignore case)',
+    value: { sku: 'ts-m', name: 'Lower case', price_amount: '1' },
+  },
+  K_other_currency: {
+    summary: 'K. VND variant on a product priced in USD -> 400',
+    value: { sku: 'TS-VND', name: 'VND', price_amount: '1', currency: 'VND' },
+  },
   G_bad_currency: {
-    summary: 'G. Invalid currency -> 422 (change "us" to "vnd" for 201)',
+    summary: 'G. Invalid currency -> 422 (change "us" to "usd" for 201)',
     value: { sku: 'TS-C', name: 'C', price_amount: '1', currency: 'us' },
   },
   H_unknown_product: {
@@ -110,6 +127,8 @@ export class ProductsController {
   constructor(
     private readonly createProductUseCase: CreateProductUseCase,
     private readonly addVariantUseCase: AddVariantUseCase,
+    private readonly publishProductUseCase: PublishProductUseCase,
+    private readonly unpublishProductUseCase: UnpublishProductUseCase,
     private readonly getProductUseCase: GetProductUseCase,
     private readonly listProductsUseCase: ListProductsUseCase,
   ) {}
@@ -156,6 +175,38 @@ export class ProductsController {
       ...toVariantCommand(body),
     });
     return ok(toVariantResponse(variant));
+  }
+
+  @Post(':id/publish')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Publish a product (requires at least one variant)',
+  })
+  @SwaggerResponse({
+    status: 200,
+    description: 'Product published',
+    type: ProductResponse,
+  })
+  async publish(
+    @Param('id') id: string,
+  ): Promise<ApiResponse<ProductResponse>> {
+    const product = await this.publishProductUseCase.execute(id);
+    return ok(toProductResponse(product));
+  }
+
+  @Post(':id/unpublish')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Return a product to draft' })
+  @SwaggerResponse({
+    status: 200,
+    description: 'Product unpublished',
+    type: ProductResponse,
+  })
+  async unpublish(
+    @Param('id') id: string,
+  ): Promise<ApiResponse<ProductResponse>> {
+    const product = await this.unpublishProductUseCase.execute(id);
+    return ok(toProductResponse(product));
   }
 
   @Get()

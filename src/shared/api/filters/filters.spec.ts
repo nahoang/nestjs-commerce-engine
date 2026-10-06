@@ -14,6 +14,7 @@ import {
   DuplicateEntityException,
   InsufficientStockException,
   InvalidOperationException,
+  InvalidValueException,
 } from '../../domain/exceptions';
 
 function createMockHost(): {
@@ -85,6 +86,32 @@ describe('Exception Filters Unit Tests', () => {
       expect(jsonMock).toHaveBeenCalledWith({
         detail: 'Out of stock',
         error_code: 'INSUFFICIENT_STOCK',
+      });
+    });
+
+    it('should translate InvalidValueException to HTTP 422 with the offending field', () => {
+      const { host, statusMock, jsonMock } = createMockHost();
+      const exception = new InvalidValueException('sku is invalid', 'sku');
+
+      filter.catch(exception, host);
+
+      expect(statusMock).toHaveBeenCalledWith(HttpStatus.UNPROCESSABLE_ENTITY);
+      expect(jsonMock).toHaveBeenCalledWith({
+        detail: 'sku is invalid',
+        error_code: 'VALIDATION_ERROR',
+        errors: [{ field: 'sku', message: 'sku is invalid' }],
+      });
+    });
+
+    it('should translate InvalidValueException without a field to HTTP 422 and no errors list', () => {
+      const { host, statusMock, jsonMock } = createMockHost();
+
+      filter.catch(new InvalidValueException('bad value'), host);
+
+      expect(statusMock).toHaveBeenCalledWith(HttpStatus.UNPROCESSABLE_ENTITY);
+      expect(jsonMock).toHaveBeenCalledWith({
+        detail: 'bad value',
+        error_code: 'VALIDATION_ERROR',
       });
     });
 

@@ -9,3 +9,5 @@ export * from './create-product.use-case';
 export * from './get-product.use-case';
 export * from './list-products.use-case';
 export * from './add-variant.use-case';
+export * from './publish-product.use-case';
+export * from './unpublish-product.use-case';

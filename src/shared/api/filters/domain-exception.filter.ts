@@ -10,6 +10,7 @@ import {
   EntityNotFoundException,
   DuplicateEntityException,
   InsufficientStockException,
+  InvalidValueException,
 } from '../../domain/exceptions';
 import { ErrorResponse } from '../envelope';
 
@@ -21,6 +22,8 @@ import { ErrorResponse } from '../envelope';
  * - EntityNotFoundException or errorCode 'ENTITY_NOT_FOUND' -> 404 NOT_FOUND
  * - DuplicateEntityException, InsufficientStockException, or errorCodes
  *   'DUPLICATE_ENTITY', 'INSUFFICIENT_STOCK', 'VOUCHER_EXHAUSTED' -> 409 CONFLICT
+ * - InvalidValueException (value object invariant) -> 422 UNPROCESSABLE_ENTITY, with
+ *   an `errors` item when the offending field is known
  * - InvalidOperationException or other domain violations -> 400 BAD_REQUEST
  */
 @Catch(DomainException)
@@ -30,7 +33,12 @@ export class DomainExceptionFilter implements ExceptionFilter<DomainException> {
     const response = ctx.getResponse<Response>();
 
     const status = this.resolveHttpStatus(exception);
-    const body = new ErrorResponse(exception.message, exception.errorCode);
+    const body =
+      exception instanceof InvalidValueException && exception.field
+        ? new ErrorResponse(exception.message, exception.errorCode, [
+            { field: exception.field, message: exception.message },
+          ])
+        : new ErrorResponse(exception.message, exception.errorCode);
 
     response.status(status).json(body);
   }
@@ -41,6 +49,10 @@ export class DomainExceptionFilter implements ExceptionFilter<DomainException> {
       exception.errorCode === 'ENTITY_NOT_FOUND'
     ) {
       return HttpStatus.NOT_FOUND;
+    }
+
+    if (exception instanceof InvalidValueException) {
+      return HttpStatus.UNPROCESSABLE_ENTITY;
     }
 
     if (

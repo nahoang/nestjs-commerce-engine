@@ -1,4 +1,4 @@
-import Decimal from 'decimal.js';
+import { Money } from '../../../shared/domain/value-objects/money';
 import {
   Product as PrismaProduct,
   ProductVariant as PrismaProductVariant,
@@ -6,6 +6,8 @@ import {
 } from '@prisma/client';
 import { Product } from '../domain/product.entity';
 import { ProductVariant } from '../domain/product-variant.entity';
+import { Sku } from '../domain/sku';
+import { Slug } from '../domain/slug';
 
 export type PrismaProductWithVariants = PrismaProduct & {
   variants: PrismaProductVariant[];
@@ -19,7 +21,7 @@ export class ProductMapper {
     return new Product({
       id: record.id,
       name: record.name,
-      slug: record.slug,
+      slug: Slug.create(record.slug),
       categoryId: record.categoryId,
       description: record.description,
       isPublished: record.isPublished,
@@ -33,11 +35,10 @@ export class ProductMapper {
     return new ProductVariant({
       id: record.id,
       productId: record.productId,
-      sku: record.sku,
+      sku: Sku.create(record.sku),
       name: record.name,
       // Via the exact decimal string, never through a JS number
-      priceAmount: new Decimal(record.priceAmount.toString()),
-      currency: record.currency,
+      price: Money.create(record.priceAmount.toString(), record.currency),
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     });
@@ -47,7 +48,7 @@ export class ProductMapper {
     return {
       id: entity.id,
       name: entity.name,
-      slug: entity.slug,
+      slug: entity.slug.value,
       categoryId: entity.categoryId,
       description: entity.description,
       isPublished: entity.isPublished,
@@ -62,10 +63,10 @@ export class ProductMapper {
     return {
       id: entity.id,
       productId: entity.productId,
-      sku: entity.sku,
+      sku: entity.sku.value,
       name: entity.name,
-      priceAmount: entity.priceAmount.toFixed(2),
-      currency: entity.currency,
+      priceAmount: entity.price.amount.toFixed(2),
+      currency: entity.price.currency,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     };
@@ -77,10 +78,10 @@ export class ProductMapper {
   ): Prisma.ProductVariantCreateWithoutProductInput {
     return {
       id: entity.id,
-      sku: entity.sku,
+      sku: entity.sku.value,
       name: entity.name,
-      priceAmount: entity.priceAmount.toFixed(2),
-      currency: entity.currency,
+      priceAmount: entity.price.amount.toFixed(2),
+      currency: entity.price.currency,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     };
