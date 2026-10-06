@@ -19,6 +19,8 @@ export const envSchema = z.object({
     .max(100, { message: 'TAX_RATE_PERCENT cannot exceed 100' })
     .default(8.0),
   ALLOWED_ORIGINS: z.string().default('*'),
+  // 0 disables the storefront cache
+  STOREFRONT_CACHE_TTL_SECONDS: z.coerce.number().int().min(0).default(30),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

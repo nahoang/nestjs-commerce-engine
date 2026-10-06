@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { StorefrontProductView } from '../application/storefront-view';
 import { Product } from '../domain/product.entity';
 import { VariantResponse, toVariantResponse } from './variant.response';
 
@@ -60,5 +61,34 @@ export function toProductResponse(product: Product): ProductResponse {
     variants: product.variants.map(toVariantResponse),
     created_at: product.createdAt.toISOString(),
     updated_at: product.updatedAt.toISOString(),
+  };
+}
+
+/**
+ * Maps a storefront read model to ProductResponse: variants carry the channel's
+ * price and currency (1.8 R5).
+ */
+export function toStorefrontProductResponse(
+  view: StorefrontProductView,
+): ProductResponse {
+  return {
+    id: view.id,
+    name: view.name,
+    slug: view.slug,
+    category_id: view.categoryId,
+    description: view.description,
+    is_published: view.isPublished,
+    variants: view.variants.map((variant) => ({
+      id: variant.id,
+      product_id: variant.productId,
+      sku: variant.sku,
+      name: variant.name,
+      price_amount: variant.priceAmount,
+      currency: variant.currency,
+      created_at: variant.createdAt,
+      updated_at: variant.updatedAt,
+    })),
+    created_at: view.createdAt,
+    updated_at: view.updatedAt,
   };
 }

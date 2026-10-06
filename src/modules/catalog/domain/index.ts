@@ -5,3 +5,4 @@ export * from './slug';
 export * from './sku';
 export * from './tree';
 export * from './channel.entity';
+export * from './channel-listing.entity';

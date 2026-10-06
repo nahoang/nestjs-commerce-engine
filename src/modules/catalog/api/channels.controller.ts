@@ -22,12 +22,20 @@ import {
   paginated,
 } from '../../../shared/api/envelope';
 import { PaginationQueryDto } from '../../../shared/api/pagination.dto';
+import { CreateListingUseCase } from '../application/create-listing.use-case';
+import { GetChannelStorefrontUseCase } from '../application/get-channel-storefront.use-case';
 import { CreateChannelUseCase } from '../application/create-channel.use-case';
 import { GetChannelUseCase } from '../application/get-channel.use-case';
 import { ListChannelsUseCase } from '../application/list-channels.use-case';
 import { UpdateChannelUseCase } from '../application/update-channel.use-case';
 import { CreateChannelRequest, UpdateChannelRequest } from './channel.request';
 import { ChannelResponse, toChannelResponse } from './channel.response';
+import { CreateListingRequest } from './listing.request';
+import { ListingResponse, toListingResponse } from './listing.response';
+import {
+  ProductResponse,
+  toStorefrontProductResponse,
+} from './product.response';
 
 const CREATE_CHANNEL_EXAMPLES = {
   A_vn_store: {
@@ -41,6 +49,26 @@ const CREATE_CHANNEL_EXAMPLES = {
   C_invalid_currency: {
     summary: 'C. Invalid currency -> 422 on currency',
     value: { name: 'Bad', currency: 'dong' },
+  },
+};
+
+const CREATE_LISTING_EXAMPLES = {
+  A_channel_price: {
+    summary:
+      'A. List a variant (replace the id; the price is in the channel currency)',
+    value: { variant_id: '<variant id>', price_amount: '250000.00' },
+  },
+  B_unavailable: {
+    summary: 'B. Listed but not sellable -> hidden on the storefront',
+    value: {
+      variant_id: '<variant id>',
+      price_amount: '12',
+      is_available: false,
+    },
+  },
+  C_negative_price: {
+    summary: 'C. Negative price -> 422, no SQL',
+    value: { variant_id: '<variant id>', price_amount: '-1' },
   },
 };
 
@@ -63,6 +91,8 @@ export class ChannelsController {
     private readonly getChannelUseCase: GetChannelUseCase,
     private readonly listChannelsUseCase: ListChannelsUseCase,
     private readonly updateChannelUseCase: UpdateChannelUseCase,
+    private readonly createListingUseCase: CreateListingUseCase,
+    private readonly getChannelStorefrontUseCase: GetChannelStorefrontUseCase,
   ) {}
 
   @Post()
@@ -122,5 +152,49 @@ export class ChannelsController {
       isActive: body.is_active,
     });
     return ok(toChannelResponse(channel));
+  }
+
+  @Post(':channelSlug/listings')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'List a variant on a channel (price in the channel currency)',
+  })
+  @ApiBody({ type: CreateListingRequest, examples: CREATE_LISTING_EXAMPLES })
+  @SwaggerResponse({ status: 201, type: ListingResponse })
+  async createListing(
+    @Param('channelSlug') channelSlug: string,
+    @Body() body: CreateListingRequest,
+  ): Promise<ApiResponse<ListingResponse>> {
+    const listing = await this.createListingUseCase.execute({
+      channelSlug,
+      variantId: body.variant_id,
+      priceAmount: body.price_amount,
+      isAvailable: body.is_available,
+    });
+    return ok(toListingResponse(listing));
+  }
+
+  @Get(':channelSlug/products')
+  @ApiOperation({
+    summary: 'Storefront of a channel: published products with channel prices',
+  })
+  @SwaggerResponse({
+    status: 200,
+    description: 'Paginated storefront products',
+  })
+  async storefront(
+    @Param('channelSlug') channelSlug: string,
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<ProductResponse>> {
+    const { items, total } = await this.getChannelStorefrontUseCase.execute(
+      channelSlug,
+      { limit: query.limit, offset: query.offset },
+    );
+    return paginated(
+      items.map(toStorefrontProductResponse),
+      total,
+      query.limit,
+      query.offset,
+    );
   }
 }

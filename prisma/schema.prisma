@@ -38,13 +38,13 @@ model HealthCheck {
 }
 
 model Category {
-  id        String    @id @default(uuid())
-  name      String    @db.VarChar(255)
-  slug      String    @unique @db.VarChar(255)
-  parentId  String?   @map("parent_id")
-  isActive  Boolean   @default(true) @map("is_active")
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(255)
+  slug      String   @unique @db.VarChar(255)
+  parentId  String?  @map("parent_id")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children Category[] @relation("CategoryHierarchy")
@@ -63,7 +63,7 @@ model Product {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  category Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  category Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   variants ProductVariant[]
 
   @@index([categoryId])
@@ -80,7 +80,8 @@ model ProductVariant {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product  Product                        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  listings ProductVariantChannelListing[]
 
   @@index([productId])
   @@map("product_variants")
@@ -95,5 +96,25 @@ model Channel {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  listings ProductVariantChannelListing[]
+
   @@map("channels")
+}
+
+// No currency column on purpose: a listing is always priced in its channel's currency (R2)
+model ProductVariantChannelListing {
+  id          String   @id @default(uuid())
+  variantId   String   @map("variant_id")
+  channelId   String   @map("channel_id")
+  priceAmount Decimal  @map("price_amount") @db.Decimal(12, 2)
+  isAvailable Boolean  @default(true) @map("is_available")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  channel Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, channelId])
+  @@index([channelId])
+  @@map("product_variant_channel_listings")
 }

@@ -1,6 +1,7 @@
 import { ListParams } from '../../../shared/application/repository';
 import { Product } from '../domain/product.entity';
 import { ProductFilter } from './product-filter';
+import { StorefrontChannel, StorefrontPage } from './storefront-view';
 import { ProductVariant } from '../domain/product-variant.entity';
 
 /**
@@ -23,6 +24,17 @@ export abstract class ProductRepository {
   ): Promise<{ items: Product[]; total: number }>;
   /** Inserts a new product together with its variants (one atomic write). */
   abstract save(entity: Product): Promise<void>;
+  /** Finds a variant by id across all products. */
+  abstract findVariantById(id: string): Promise<ProductVariant | null>;
+  /**
+   * Storefront page of a channel: published products that have at least one available
+   * listing there, each with only its available variants priced by the channel (R4, R5).
+   * The number of queries does not depend on the number of products.
+   */
+  abstract listForChannel(
+    channel: StorefrontChannel,
+    params: ListParams,
+  ): Promise<StorefrontPage>;
   /** Adds one variant to an existing product. Duplicate SKU -> DuplicateEntityException. */
   abstract addVariant(variant: ProductVariant): Promise<void>;
 }

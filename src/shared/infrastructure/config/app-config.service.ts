@@ -58,6 +58,12 @@ export class AppConfigService {
     return new Decimal(raw);
   }
 
+  get storefrontCacheTtlSeconds(): number {
+    return this.configService.get('STOREFRONT_CACHE_TTL_SECONDS', {
+      infer: true,
+    });
+  }
+
   get allowedOrigins(): string[] {
     const raw = this.configService.get('ALLOWED_ORIGINS', { infer: true });
     if (!raw || raw.trim() === '*') {

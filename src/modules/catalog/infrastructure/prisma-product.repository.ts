@@ -8,6 +8,11 @@ import { DuplicateEntityException } from '../../../shared/domain/exceptions';
 import { Product } from '../domain/product.entity';
 import { ProductVariant } from '../domain/product-variant.entity';
 import { ProductFilter } from '../application/product-filter';
+import {
+  StorefrontChannel,
+  StorefrontPage,
+} from '../application/storefront-view';
+import { Money } from '../../../shared/domain/value-objects/money';
 import { ProductRepository } from '../application/product.repository';
 import { ProductMapper } from './product.mapper';
 
@@ -167,6 +172,71 @@ export class PrismaProductRepository implements ProductRepository {
     } catch (error) {
       throw this.translateUniqueViolation(error);
     }
+  }
+
+  async findVariantById(id: string): Promise<ProductVariant | null> {
+    const record = await this.txHost.tx.productVariant.findUnique({
+      where: { id },
+    });
+    return record ? ProductMapper.variantToDomain(record) : null;
+  }
+
+  /**
+   * Fixed number of queries whatever the page size: products, their available variants
+   * and those variants' listings on this channel (one query per relation level), plus a count.
+   */
+  async listForChannel(
+    channel: StorefrontChannel,
+    params: ListParams,
+  ): Promise<StorefrontPage> {
+    const availableHere = {
+      listings: { some: { channelId: channel.id, isAvailable: true } },
+    } satisfies Prisma.ProductVariantWhereInput;
+    const where = {
+      isPublished: true,
+      variants: { some: availableHere },
+    } satisfies Prisma.ProductWhereInput;
+
+    const records = await this.txHost.tx.product.findMany({
+      where,
+      skip: params.offset ?? 0,
+      take: params.limit ?? 20,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      include: {
+        variants: {
+          where: availableHere,
+          orderBy: [{ createdAt: 'asc' }, { sku: 'asc' }],
+          include: { listings: { where: { channelId: channel.id } } },
+        },
+      },
+    });
+    const total = await this.txHost.tx.product.count({ where });
+
+    const items = records.map((product) => ({
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      categoryId: product.categoryId,
+      description: product.description,
+      isPublished: product.isPublished,
+      variants: product.variants.map((variant) => ({
+        id: variant.id,
+        productId: variant.productId,
+        sku: variant.sku,
+        name: variant.name,
+        // R5: the channel's price in the channel's currency, not the variant's base price
+        priceAmount: Money.create(
+          variant.listings[0].priceAmount.toString(),
+          channel.currency,
+        ).amount.toFixed(2),
+        currency: channel.currency,
+        createdAt: variant.createdAt.toISOString(),
+        updatedAt: variant.updatedAt.toISOString(),
+      })),
+      createdAt: product.createdAt.toISOString(),
+      updatedAt: product.updatedAt.toISOString(),
+    }));
+    return { items, total };
   }
 
   async addVariant(variant: ProductVariant): Promise<void> {

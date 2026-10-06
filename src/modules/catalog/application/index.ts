@@ -17,3 +17,8 @@ export * from './create-channel.use-case';
 export * from './get-channel.use-case';
 export * from './list-channels.use-case';
 export * from './update-channel.use-case';
+export * from './storefront-view';
+export * from './storefront-cache';
+export * from './channel-listing.repository';
+export * from './create-listing.use-case';
+export * from './get-channel-storefront.use-case';
