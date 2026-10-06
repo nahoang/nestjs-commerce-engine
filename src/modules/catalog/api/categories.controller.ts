@@ -47,10 +47,10 @@ export class CategoriesController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Tạo danh mục mới' })
+  @ApiOperation({ summary: 'Create a category' })
   @SwaggerResponse({
     status: 201,
-    description: 'Danh mục đã được tạo thành công',
+    description: 'Category created successfully',
     type: CategoryResponse,
   })
   async create(
@@ -67,10 +67,10 @@ export class CategoriesController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Xem danh sách danh mục (phân trang offset)' })
+  @ApiOperation({ summary: 'List categories (offset pagination)' })
   @SwaggerResponse({
     status: 200,
-    description: 'Danh sách danh mục có phân trang',
+    description: 'Paginated list of categories',
   })
   async list(
     @Query() query: PaginationQueryDto,
@@ -85,10 +85,10 @@ export class CategoriesController {
   }
 
   @Get('tree')
-  @ApiOperation({ summary: 'Xem cây danh mục lồng nhau (hoặc cây con)' })
+  @ApiOperation({ summary: 'Get the nested category tree (or a subtree)' })
   @SwaggerResponse({
     status: 200,
-    description: 'Cây danh mục với các danh mục con lồng nhau',
+    description: 'Category tree with nested children',
     type: [CategoryNodeResponse],
   })
   async getTree(
@@ -99,10 +99,10 @@ export class CategoriesController {
   }
 
   @Get(':slugOrId/breadcrumbs')
-  @ApiOperation({ summary: 'Lấy breadcrumbs từ gốc đến danh mục hiện tại' })
+  @ApiOperation({ summary: 'Get breadcrumbs from the root to this category' })
   @SwaggerResponse({
     status: 200,
-    description: 'Danh sách danh mục từ gốc đến danh mục hiện tại',
+    description: 'Categories ordered from the root to the current category',
     type: [CategoryResponse],
   })
   async getBreadcrumbs(
@@ -113,10 +113,10 @@ export class CategoriesController {
   }
 
   @Get(':slugOrId')
-  @ApiOperation({ summary: 'Chi tiết danh mục theo slug hoặc ID' })
+  @ApiOperation({ summary: 'Get a category by slug or ID' })
   @SwaggerResponse({
     status: 200,
-    description: 'Chi tiết danh mục',
+    description: 'Category details',
     type: CategoryResponse,
   })
   async getOne(

@@ -48,6 +48,23 @@ model Category {
 
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children Category[] @relation("CategoryHierarchy")
+  products Product[]
 
   @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(255)
+  slug        String   @unique @db.VarChar(255)
+  categoryId  String?  @map("category_id")
+  description String?  @db.Text
+  isPublished Boolean  @default(false) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([categoryId])
+  @@map("products")
 }

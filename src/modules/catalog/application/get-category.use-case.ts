@@ -8,7 +8,7 @@ export class GetCategoryUseCase {
   constructor(private readonly categoryRepo: CategoryRepository) {}
 
   async execute(slugOrId: string): Promise<Category> {
-    // Tìm theo slug trước, sau đó theo id theo DOMAIN-SPEC-1-CATALOG § 1.1
+    // Look up by slug first, then by id (DOMAIN-SPEC-1-CATALOG § 1.1)
     let category = await this.categoryRepo.findBySlug(slugOrId);
     if (!category) {
       category = await this.categoryRepo.findById(slugOrId);

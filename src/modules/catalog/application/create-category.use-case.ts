@@ -23,13 +23,13 @@ export class CreateCategoryUseCase {
   async execute(command: CreateCategoryCommand): Promise<Category> {
     const trimmedName = command.name.trim();
 
-    // R2: Không truyền slug -> sinh tự động từ name. Có truyền -> trim
+    // R2: no slug supplied -> generate one from the name; otherwise trim it
     const finalSlug =
       command.slug && command.slug.trim().length > 0
         ? command.slug.trim()
         : slugify(trimmedName);
 
-    // R1: slug là duy nhất trên toàn bộ danh mục -> 409 DUPLICATE_ENTITY
+    // R1: slug is unique across all categories -> 409 DUPLICATE_ENTITY
     const existing = await this.categoryRepo.findBySlug(finalSlug);
     if (existing) {
       throw new DuplicateEntityException(
@@ -37,7 +37,7 @@ export class CreateCategoryUseCase {
       );
     }
 
-    // R3: parent_id (nếu có) phải trỏ tới danh mục tồn tại -> 404 ENTITY_NOT_FOUND
+    // R3: parent_id (if given) must point to an existing category -> 404 ENTITY_NOT_FOUND
     if (command.parentId) {
       const parent = await this.categoryRepo.findById(command.parentId);
       if (!parent) {

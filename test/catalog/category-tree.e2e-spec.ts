@@ -62,7 +62,7 @@ describe('CategoriesController Tree & Breadcrumbs (e2e) — DOMAIN-SPEC-1-CATALO
     return { root, men, tshirt, jeans };
   }
 
-  // 1. Cây: Thời trang → Đồ Nam → {Áo thun, Quần jeans} → /tree trả 1 gốc, children lồng đúng 3 cấp, "Áo thun" đứng trước "Quần jeans"
+  // 1. Tree: Thời trang → Đồ Nam → {Áo thun, Quần jeans} → /tree returns 1 root, children nested over 3 levels, "Áo thun" before "Quần jeans"
   it('1. GET /api/v1/categories/tree returns 1 root, 3 nested levels, and siblings sorted by slug', async () => {
     await seedTestHierarchy();
 
@@ -95,7 +95,7 @@ describe('CategoriesController Tree & Breadcrumbs (e2e) — DOMAIN-SPEC-1-CATALO
     expect(menNode.children[1].children).toEqual([]);
   });
 
-  // 2. /tree?root_id=do-nam → gốc là "Đồ Nam"
+  // 2. /tree?root_id=do-nam → root is "Đồ Nam"
   it('2. GET /api/v1/categories/tree?root_id=do-nam returns subtree with "Đồ Nam" as root', async () => {
     const { men } = await seedTestHierarchy();
 
@@ -123,7 +123,7 @@ describe('CategoriesController Tree & Breadcrumbs (e2e) — DOMAIN-SPEC-1-CATALO
     expect(bodyById.data[0].name).toBe('Đồ Nam');
   });
 
-  // 3. /ao-thun/breadcrumbs → ["Thời trang", "Đồ Nam", "Áo thun"] theo đúng thứ tự
+  // 3. /ao-thun/breadcrumbs → ["Thời trang", "Đồ Nam", "Áo thun"] in order
   it('3. GET /api/v1/categories/:slugOrId/breadcrumbs returns ordered breadcrumbs from root to leaf', async () => {
     const { root, men, tshirt } = await seedTestHierarchy();
 
@@ -153,7 +153,7 @@ describe('CategoriesController Tree & Breadcrumbs (e2e) — DOMAIN-SPEC-1-CATALO
     expect(bodyById.data[2].slug).toBe('ao-thun');
   });
 
-  // 4. Breadcrumbs của danh mục gốc → mảng 1 phần tử
+  // 4. Breadcrumbs of a root category → single-element array
   it('4. GET /api/v1/categories/:slugOrId/breadcrumbs for root category returns single item array', async () => {
     const { root } = await seedTestHierarchy();
 

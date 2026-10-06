@@ -30,7 +30,7 @@ describe('CategoriesController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.1', () => {
     await truncateAll(prisma);
   });
 
-  // 1. Tạo "Thời trang" (không slug) → slug = "thoi-trang", parent_id = null
+  // 1. Create "Thời trang" (no slug) → slug = "thoi-trang", parent_id = null
   it('1. POST /api/v1/categories without slug auto-slugifies name and sets parent_id = null', async () => {
     const res = await request(app.getHttpServer() as Server)
       .post('/api/v1/categories')
@@ -48,7 +48,7 @@ describe('CategoriesController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.1', () => {
     expect(body.data.updated_at).toBeDefined();
   });
 
-  // 2. Tạo "Đồ Nam" với parent_id = id "Thời trang" → 201, parent_id đúng
+  // 2. Create "Đồ Nam" with parent_id = id of "Thời trang" → 201, correct parent_id
   it('2. POST /api/v1/categories with parent_id sets parent hierarchy correctly', async () => {
     const parentRes = await request(app.getHttpServer() as Server)
       .post('/api/v1/categories')
@@ -68,7 +68,7 @@ describe('CategoriesController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.1', () => {
     expect(childBody.data.parent_id).toBe(parentId);
   });
 
-  // 3. Tạo danh mục với parent_id không tồn tại → 404 ENTITY_NOT_FOUND
+  // 3. Create a category with a non-existent parent_id → 404 ENTITY_NOT_FOUND
   it('3. POST /api/v1/categories with non-existent parent_id returns 404 ENTITY_NOT_FOUND', async () => {
     const nonExistentId = '00000000-0000-0000-0000-000000000000';
 
@@ -81,7 +81,7 @@ describe('CategoriesController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.1', () => {
     expect(body.error_code).toBe('ENTITY_NOT_FOUND');
   });
 
-  // 4. Tạo hai danh mục cùng slug → lần 2 trả 409 DUPLICATE_ENTITY
+  // 4. Create two categories with the same slug → second returns 409 DUPLICATE_ENTITY
   it('4. POST /api/v1/categories with duplicate slug returns 409 DUPLICATE_ENTITY', async () => {
     await request(app.getHttpServer() as Server)
       .post('/api/v1/categories')
@@ -110,7 +110,7 @@ describe('CategoriesController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.1', () => {
     expect(body.errors?.some((err) => err.field === 'name')).toBe(true);
   });
 
-  // 6. Danh sách với limit=1 khi có 2 danh mục → total=2, page=1, page_size=1, has_next=true
+  // 6. List with limit=1 when 2 categories exist → total=2, page=1, page_size=1, has_next=true
   it('6. GET /api/v1/categories with limit=1 when 2 exist returns paginated envelope', async () => {
     await request(app.getHttpServer() as Server)
       .post('/api/v1/categories')
@@ -134,7 +134,7 @@ describe('CategoriesController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.1', () => {
     expect(body.has_next).toBe(true);
   });
 
-  // 7. Lấy chi tiết theo slug và theo id → cùng kết quả
+  // 7. Get details by slug and by id → identical result
   it('7. GET /api/v1/categories/:slugOrId returns identical result by slug and by id', async () => {
     const createRes = await request(app.getHttpServer() as Server)
       .post('/api/v1/categories')
@@ -143,12 +143,12 @@ describe('CategoriesController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.1', () => {
 
     const created = (createRes.body as ApiResponse<CategoryResponse>).data;
 
-    // Lấy theo slug
+    // By slug
     const bySlugRes = await request(app.getHttpServer() as Server)
       .get(`/api/v1/categories/${created.slug}`)
       .expect(200);
 
-    // Lấy theo id
+    // By id
     const byIdRes = await request(app.getHttpServer() as Server)
       .get(`/api/v1/categories/${created.id}`)
       .expect(200);

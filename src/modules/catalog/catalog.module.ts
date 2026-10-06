@@ -8,11 +8,24 @@ import { ListCategoriesUseCase } from './application/list-categories.use-case';
 import { GetCategoryTreeUseCase } from './application/get-category-tree.use-case';
 import { GetBreadcrumbsUseCase } from './application/get-breadcrumbs.use-case';
 import { PrismaCategoryRepository } from './infrastructure/prisma-category.repository';
+import { ProductsController } from './api/products.controller';
+import { ProductRepository } from './application/product.repository';
+import { CreateProductUseCase } from './application/create-product.use-case';
+import { GetProductUseCase } from './application/get-product.use-case';
+import { ListProductsUseCase } from './application/list-products.use-case';
+import { PrismaProductRepository } from './infrastructure/prisma-product.repository';
 
 @Module({
   imports: [PrismaModule],
-  controllers: [CategoriesController],
+  controllers: [CategoriesController, ProductsController],
   providers: [
+    CreateProductUseCase,
+    GetProductUseCase,
+    ListProductsUseCase,
+    {
+      provide: ProductRepository,
+      useClass: PrismaProductRepository,
+    },
     CreateCategoryUseCase,
     GetCategoryUseCase,
     ListCategoriesUseCase,
@@ -24,6 +37,10 @@ import { PrismaCategoryRepository } from './infrastructure/prisma-category.repos
     },
   ],
   exports: [
+    ProductRepository,
+    CreateProductUseCase,
+    GetProductUseCase,
+    ListProductsUseCase,
     CategoryRepository,
     CreateCategoryUseCase,
     GetCategoryUseCase,

@@ -4,3 +4,7 @@ export * from './get-category.use-case';
 export * from './list-categories.use-case';
 export * from './get-category-tree.use-case';
 export * from './get-breadcrumbs.use-case';
+export * from './product.repository';
+export * from './create-product.use-case';
+export * from './get-product.use-case';
+export * from './list-products.use-case';

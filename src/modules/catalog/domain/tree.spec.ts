@@ -23,8 +23,8 @@ describe('buildTree (domain pure function) — DOMAIN-SPEC-1-CATALOG § 1.2', ()
     expect(buildTree([])).toEqual([]);
   });
 
-  // Test case 1 & 5: Cây: Thời trang → Đồ Nam → {Áo thun, Quần jeans}
-  // và Unit test hàm dựng cây: danh sách phẳng xáo trộn thứ tự → cây đúng, siblings đúng thứ tự
+  // Test cases 1 & 5: tree Thời trang → Đồ Nam → {Áo thun, Quần jeans}
+  // and the pure tree builder: shuffled flat list → correct tree, siblings in the right order
   it('should correctly assemble tree and sort siblings ascending by ASCII slug even when shuffled', () => {
     const root = createCategory('1', 'Thời trang', 'thoi-trang', null);
     const men = createCategory('2', 'Đồ Nam', 'do-nam', '1');
