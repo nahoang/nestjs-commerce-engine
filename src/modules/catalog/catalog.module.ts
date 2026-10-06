@@ -16,11 +16,18 @@ import { PublishProductUseCase } from './application/publish-product.use-case';
 import { UnpublishProductUseCase } from './application/unpublish-product.use-case';
 import { GetProductUseCase } from './application/get-product.use-case';
 import { SearchProductsUseCase } from './application/search-products.use-case';
+import { ChannelsController } from './api/channels.controller';
+import { ChannelRepository } from './application/channel.repository';
+import { CreateChannelUseCase } from './application/create-channel.use-case';
+import { GetChannelUseCase } from './application/get-channel.use-case';
+import { ListChannelsUseCase } from './application/list-channels.use-case';
+import { UpdateChannelUseCase } from './application/update-channel.use-case';
+import { PrismaChannelRepository } from './infrastructure/prisma-channel.repository';
 import { PrismaProductRepository } from './infrastructure/prisma-product.repository';
 
 @Module({
   imports: [PrismaModule],
-  controllers: [CategoriesController, ProductsController],
+  controllers: [CategoriesController, ProductsController, ChannelsController],
   providers: [
     CreateProductUseCase,
     AddVariantUseCase,
@@ -32,6 +39,11 @@ import { PrismaProductRepository } from './infrastructure/prisma-product.reposit
       provide: ProductRepository,
       useClass: PrismaProductRepository,
     },
+    CreateChannelUseCase,
+    GetChannelUseCase,
+    ListChannelsUseCase,
+    UpdateChannelUseCase,
+    { provide: ChannelRepository, useClass: PrismaChannelRepository },
     CreateCategoryUseCase,
     GetCategoryUseCase,
     ListCategoriesUseCase,
@@ -43,6 +55,11 @@ import { PrismaProductRepository } from './infrastructure/prisma-product.reposit
     },
   ],
   exports: [
+    ChannelRepository,
+    CreateChannelUseCase,
+    GetChannelUseCase,
+    ListChannelsUseCase,
+    UpdateChannelUseCase,
     ProductRepository,
     CreateProductUseCase,
     AddVariantUseCase,

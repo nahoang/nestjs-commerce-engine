@@ -85,3 +85,15 @@ model ProductVariant {
   @@index([productId])
   @@map("product_variants")
 }
+
+model Channel {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(255)
+  slug      String   @unique @db.VarChar(255)
+  currency  String   @db.Char(3)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("channels")
+}

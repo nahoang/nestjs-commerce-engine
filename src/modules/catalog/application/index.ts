@@ -12,3 +12,8 @@ export * from './search-products.use-case';
 export * from './add-variant.use-case';
 export * from './publish-product.use-case';
 export * from './unpublish-product.use-case';
+export * from './channel.repository';
+export * from './create-channel.use-case';
+export * from './get-channel.use-case';
+export * from './list-channels.use-case';
+export * from './update-channel.use-case';
