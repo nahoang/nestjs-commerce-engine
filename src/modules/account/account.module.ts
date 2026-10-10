@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../shared/infrastructure/prisma/prisma.module';
+import { AuthController } from './api/auth.controller';
 import { BootstrapAdminUseCase } from './application/bootstrap-admin.use-case';
+import { RegisterUserUseCase } from './application/register-user.use-case';
 import { PasswordHasher } from './application/password-hasher';
 import { TokenKeyGenerator } from './application/token-key-generator';
 import { UserRepository } from './application/user.repository';
@@ -11,8 +13,10 @@ import { RandomTokenKeyGenerator } from './infrastructure/random-token-key.gener
 
 @Module({
   imports: [PrismaModule],
+  controllers: [AuthController],
   providers: [
     BootstrapAdminUseCase,
+    RegisterUserUseCase,
     AdminBootstrapService,
     { provide: UserRepository, useClass: PrismaUserRepository },
     { provide: PasswordHasher, useClass: Argon2PasswordHasher },
