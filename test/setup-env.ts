@@ -16,3 +16,6 @@ if (fs.existsSync(envTestPath)) {
     process.env.SECRET_KEY ||
     'test-secret-key-32-chars-for-ci-and-testing-only';
 }
+
+// Login throttling must not interfere with tests; the throttling test lowers it itself
+process.env.LOGIN_RATE_LIMIT = process.env.LOGIN_RATE_LIMIT || '1000';

@@ -15,6 +15,7 @@ import {
   InsufficientStockException,
   InvalidOperationException,
   InvalidValueException,
+  UnauthenticatedException,
 } from '../../domain/exceptions';
 
 function createMockHost(): {
@@ -22,11 +23,14 @@ function createMockHost(): {
   mockResponse: Response;
   statusMock: jest.Mock;
   jsonMock: jest.Mock;
+  setHeaderMock: jest.Mock;
 } {
   const jsonMock = jest.fn();
   const statusMock = jest.fn();
   statusMock.mockReturnValue({ json: jsonMock });
+  const setHeaderMock = jest.fn();
   const mockResponse = {
+    setHeader: setHeaderMock,
     status: statusMock,
     json: jsonMock,
   } as unknown as Response;
@@ -39,7 +43,7 @@ function createMockHost(): {
     }),
   } as unknown as ArgumentsHost;
 
-  return { host, mockResponse, statusMock, jsonMock };
+  return { host, mockResponse, statusMock, jsonMock, setHeaderMock };
 }
 
 describe('Exception Filters Unit Tests', () => {
@@ -86,6 +90,19 @@ describe('Exception Filters Unit Tests', () => {
       expect(jsonMock).toHaveBeenCalledWith({
         detail: 'Out of stock',
         error_code: 'INSUFFICIENT_STOCK',
+      });
+    });
+
+    it('should translate UnauthenticatedException to HTTP 401 with a Bearer challenge', () => {
+      const { host, statusMock, jsonMock, setHeaderMock } = createMockHost();
+
+      filter.catch(new UnauthenticatedException(), host);
+
+      expect(statusMock).toHaveBeenCalledWith(HttpStatus.UNAUTHORIZED);
+      expect(setHeaderMock).toHaveBeenCalledWith('WWW-Authenticate', 'Bearer');
+      expect(jsonMock).toHaveBeenCalledWith({
+        detail: 'Could not validate credentials',
+        error_code: 'UNAUTHENTICATED',
       });
     });
 

@@ -19,6 +19,8 @@ HOST="http://localhost:${PORT}"
 
 export PORT="${PORT}"
 export NODE_ENV="test"
+# Contract files log in many times from one IP; keep throttling out of their way
+export LOGIN_RATE_LIMIT="${LOGIN_RATE_LIMIT:-1000}"
 
 if ! command -v hurl &> /dev/null; then
   if [ -d "${HOME}/AppData/Local/Programs/hurl" ]; then

@@ -11,6 +11,7 @@ import {
   DuplicateEntityException,
   InsufficientStockException,
   InvalidValueException,
+  UnauthenticatedException,
 } from '../../domain/exceptions';
 import { ErrorResponse } from '../envelope';
 
@@ -22,6 +23,7 @@ import { ErrorResponse } from '../envelope';
  * - EntityNotFoundException or errorCode 'ENTITY_NOT_FOUND' -> 404 NOT_FOUND
  * - DuplicateEntityException, InsufficientStockException, or errorCodes
  *   'DUPLICATE_ENTITY', 'INSUFFICIENT_STOCK', 'VOUCHER_EXHAUSTED' -> 409 CONFLICT
+ * - UnauthenticatedException or errorCode 'UNAUTHENTICATED' -> 401 UNAUTHORIZED (+ WWW-Authenticate)
  * - InvalidValueException (value object invariant) -> 422 UNPROCESSABLE_ENTITY, with
  *   an `errors` item when the offending field is known
  * - InvalidOperationException or other domain violations -> 400 BAD_REQUEST
@@ -40,15 +42,25 @@ export class DomainExceptionFilter implements ExceptionFilter<DomainException> {
           ])
         : new ErrorResponse(exception.message, exception.errorCode);
 
+    if (status === HttpStatus.UNAUTHORIZED) {
+      response.setHeader('WWW-Authenticate', 'Bearer');
+    }
     response.status(status).json(body);
   }
 
-  private resolveHttpStatus(exception: DomainException): number {
+  private resolveHttpStatus(exception: DomainException): HttpStatus {
     if (
       exception instanceof EntityNotFoundException ||
       exception.errorCode === 'ENTITY_NOT_FOUND'
     ) {
       return HttpStatus.NOT_FOUND;
+    }
+
+    if (
+      exception instanceof UnauthenticatedException ||
+      exception.errorCode === 'UNAUTHENTICATED'
+    ) {
+      return HttpStatus.UNAUTHORIZED;
     }
 
     if (exception instanceof InvalidValueException) {

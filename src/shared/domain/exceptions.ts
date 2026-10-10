@@ -79,3 +79,18 @@ export class InvalidValueException extends DomainException {
     this.field = field;
   }
 }
+
+/**
+ * Thrown when the caller could not be authenticated: wrong credentials, or a
+ * missing, malformed, expired or revoked token. Deliberately carries no hint of
+ * WHICH check failed, so a client cannot tell "unknown email" from "wrong password".
+ * Maps to HTTP 401 with error_code 'UNAUTHENTICATED' in API layer.
+ */
+export class UnauthenticatedException extends DomainException {
+  constructor(
+    message: string = 'Could not validate credentials',
+    errorCode: string = 'UNAUTHENTICATED',
+  ) {
+    super(message, errorCode);
+  }
+}

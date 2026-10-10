@@ -43,4 +43,18 @@ describe('User', () => {
       InvalidValueException,
     );
   });
+
+  it('changePassword replaces the hash and the token key together (R5)', () => {
+    const user = new User(props());
+    const before = user.updatedAt;
+
+    user.changePassword('$argon2id$new', 'b'.repeat(64));
+
+    expect(user.passwordHash).toBe('$argon2id$new');
+    expect(user.tokenKey).toBe('b'.repeat(64));
+    expect(user.updatedAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(() => user.changePassword('', 'c'.repeat(64))).toThrow(
+      InvalidValueException,
+    );
+  });
 });

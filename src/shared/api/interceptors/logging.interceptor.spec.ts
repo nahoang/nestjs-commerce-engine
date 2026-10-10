@@ -7,7 +7,10 @@ import {
 import { of, throwError } from 'rxjs';
 import { LoggingInterceptor } from './logging.interceptor';
 import { ClsService } from 'nestjs-cls';
-import { EntityNotFoundException } from '../../domain/exceptions';
+import {
+  EntityNotFoundException,
+  UnauthenticatedException,
+} from '../../domain/exceptions';
 
 describe('LoggingInterceptor', () => {
   let interceptor: LoggingInterceptor;
@@ -108,6 +111,23 @@ describe('LoggingInterceptor', () => {
         const logMsg = calls[0]?.[0] as string;
         expect(logMsg).toContain('GET /api/v1/products/404 → 404 in ');
         expect(logMsg).toContain('[test-trace-id-123]');
+        done();
+      },
+    });
+  });
+
+  it('should log 401 for UnauthenticatedException', (done) => {
+    const context = createMockContext('GET', '/api/v1/auth/me', 200);
+    const handler: CallHandler = {
+      handle: () => throwError(() => new UnauthenticatedException()),
+    };
+
+    interceptor.intercept(context, handler).subscribe({
+      error: () => {
+        const calls = errorSpy.mock.calls as unknown[][];
+        expect(calls[0]?.[0] as string).toContain(
+          'GET /api/v1/auth/me → 401 in ',
+        );
         done();
       },
     });

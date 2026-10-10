@@ -64,6 +64,14 @@ export class AppConfigService {
     });
   }
 
+  get loginRateLimit(): number {
+    return this.configService.get('LOGIN_RATE_LIMIT', { infer: true });
+  }
+
+  get loginRateWindowSeconds(): number {
+    return this.configService.get('LOGIN_RATE_WINDOW_SECONDS', { infer: true });
+  }
+
   /** Empty or unset means "do not bootstrap an admin". */
   get bootstrapAdminEmail(): string | undefined {
     return (

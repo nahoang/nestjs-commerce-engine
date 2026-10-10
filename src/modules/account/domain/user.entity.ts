@@ -90,4 +90,14 @@ export class User extends BaseEntity {
   get tokenKey(): string {
     return this._tokenKey;
   }
+
+  /**
+   * Replaces the password hash AND the token key in one step: the new key is
+   * what revokes every token issued before the change (R5).
+   */
+  changePassword(passwordHash: string, tokenKey: string): void {
+    this._passwordHash = requiredText(passwordHash, 'passwordHash');
+    this._tokenKey = requiredText(tokenKey, 'tokenKey');
+    this.touch();
+  }
 }
