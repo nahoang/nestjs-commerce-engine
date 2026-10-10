@@ -1,8 +1,8 @@
 import { INestApplication } from '@nestjs/common';
-import { Server } from 'http';
 import * as request from 'supertest';
 import { createTestApp } from '../helpers/test-app';
 import { truncateAll } from '../helpers/db';
+import { adminApi, resetWithAdmin } from '../helpers/auth';
 import { PrismaService } from '../../src/shared/infrastructure/prisma/prisma.service';
 import {
   ApiResponse,
@@ -27,13 +27,11 @@ describe('ChannelsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.7', () => {
   });
 
   beforeEach(async () => {
-    await truncateAll(prisma);
+    await resetWithAdmin(prisma);
   });
 
-  const server = (): Server => app.getHttpServer() as Server;
-
   const create = (body: Record<string, unknown>): request.Test =>
-    request(server()).post('/api/v1/channels').send(body);
+    adminApi(app).post('/api/v1/channels').send(body);
 
   it('1. creates vn-store (VND) and us-store (USD); the list has both', async () => {
     const vn = await create({
@@ -55,7 +53,7 @@ describe('ChannelsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.7', () => {
       currency: 'usd',
     }).expect(201);
 
-    const res = await request(server()).get('/api/v1/channels').expect(200);
+    const res = await adminApi(app).get('/api/v1/channels').expect(200);
     const page = res.body as PaginatedResponse<ChannelResponse>;
     expect(page.total).toBe(2);
     expect(page.data.map((c) => c.slug)).toEqual(['vn-store', 'us-store']);
@@ -77,14 +75,14 @@ describe('ChannelsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.7', () => {
       slug: 'vn-store',
       currency: 'VND',
     }).expect(201);
-    const found = await request(server())
+    const found = await adminApi(app)
       .get('/api/v1/channels/vn-store')
       .expect(200);
     expect((found.body as ApiResponse<ChannelResponse>).data.currency).toBe(
       'VND',
     );
 
-    const missing = await request(server())
+    const missing = await adminApi(app)
       .get('/api/v1/channels/nope')
       .expect(404);
     expect((missing.body as ErrorResponse).error_code).toBe('ENTITY_NOT_FOUND');
@@ -112,7 +110,7 @@ describe('ChannelsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.7', () => {
       currency: 'VND',
     }).expect(201);
 
-    const res = await request(server())
+    const res = await adminApi(app)
       .patch('/api/v1/channels/vn-store')
       .send({ is_active: false, currency: 'USD', slug: 'hacked' })
       .expect(200);
@@ -135,7 +133,7 @@ describe('ChannelsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.7', () => {
       currency: 'VND',
       is_active: false,
     }).expect(201);
-    const res = await request(server())
+    const res = await adminApi(app)
       .patch('/api/v1/channels/vn-store')
       .send({ name: '  Vietnam Store ', is_active: true })
       .expect(200);
@@ -146,7 +144,7 @@ describe('ChannelsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.7', () => {
   });
 
   it('3c. PATCH unknown slug -> 404; empty name -> 422', async () => {
-    await request(server())
+    await adminApi(app)
       .patch('/api/v1/channels/nope')
       .send({ is_active: false })
       .expect(404);
@@ -155,7 +153,7 @@ describe('ChannelsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.7', () => {
       slug: 'vn-store',
       currency: 'VND',
     }).expect(201);
-    const res = await request(server())
+    const res = await adminApi(app)
       .patch('/api/v1/channels/vn-store')
       .send({ name: '  ' })
       .expect(422);

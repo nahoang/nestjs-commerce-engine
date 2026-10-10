@@ -31,6 +31,9 @@ import { CreateProductRequest } from './create-product.request';
 import { VariantInput } from './variant-input';
 import { VariantResponse, toVariantResponse } from './variant.response';
 import { ProductResponse, toProductResponse } from './product.response';
+import { OptionalAuth, Roles } from '../../account/api/auth-metadata';
+import { CurrentUserOrNull } from '../../account/api/current-user.decorator';
+import { User } from '../../account/domain/user.entity';
 
 // The controller only maps the DTO to a command; Sku and Money are built in the use case
 function toVariantCommand(input: VariantInput): {
@@ -133,6 +136,7 @@ export class ProductsController {
     private readonly searchProductsUseCase: SearchProductsUseCase,
   ) {}
 
+  @Roles('admin')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a product (draft by default)' })
@@ -157,6 +161,7 @@ export class ProductsController {
     return ok(toProductResponse(product));
   }
 
+  @Roles('admin')
   @Post(':productId/variants')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Add a variant to an existing product' })
@@ -177,6 +182,7 @@ export class ProductsController {
     return ok(toVariantResponse(variant));
   }
 
+  @Roles('admin')
   @Post(':id/publish')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -194,6 +200,7 @@ export class ProductsController {
     return ok(toProductResponse(product));
   }
 
+  @Roles('admin')
   @Post(':id/unpublish')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Return a product to draft' })
@@ -209,6 +216,7 @@ export class ProductsController {
     return ok(toProductResponse(product));
   }
 
+  @OptionalAuth()
   @Get()
   @ApiOperation({
     summary: 'List and search products (filters, sorting, offset pagination)',
@@ -219,6 +227,7 @@ export class ProductsController {
   })
   async list(
     @Query() query: ListProductsQueryDto,
+    @CurrentUserOrNull() user: User | null,
   ): Promise<PaginatedResponse<ProductResponse>> {
     const { items, total } = await this.searchProductsUseCase.execute(
       {
@@ -229,6 +238,7 @@ export class ProductsController {
         currency: query.currency,
         isPublished: query.is_published,
         sortBy: query.sort_by,
+        viewer: user?.role ?? null,
       },
       { limit: query.limit, offset: query.offset },
     );
@@ -240,6 +250,7 @@ export class ProductsController {
     );
   }
 
+  @OptionalAuth()
   @Get(':slugOrId')
   @ApiOperation({ summary: 'Get a product by slug or ID' })
   @SwaggerResponse({
@@ -249,8 +260,12 @@ export class ProductsController {
   })
   async getOne(
     @Param('slugOrId') slugOrId: string,
+    @CurrentUserOrNull() user: User | null,
   ): Promise<ApiResponse<ProductResponse>> {
-    const product = await this.getProductUseCase.execute(slugOrId);
+    const product = await this.getProductUseCase.execute(
+      slugOrId,
+      user?.role ?? null,
+    );
     return ok(toProductResponse(product));
   }
 }

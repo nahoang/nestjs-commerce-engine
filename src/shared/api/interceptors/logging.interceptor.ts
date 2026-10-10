@@ -87,6 +87,9 @@ export class LoggingInterceptor implements NestInterceptor {
       ) {
         return HttpStatus.CONFLICT;
       }
+      if (errorCode === 'FORBIDDEN') {
+        return HttpStatus.FORBIDDEN;
+      }
       if (errorCode === 'UNAUTHENTICATED') {
         return HttpStatus.UNAUTHORIZED;
       }

@@ -94,3 +94,16 @@ export class UnauthenticatedException extends DomainException {
     super(message, errorCode);
   }
 }
+
+/**
+ * Thrown when the caller is authenticated but their role is not allowed to do this.
+ * Maps to HTTP 403 with error_code 'FORBIDDEN' in API layer.
+ */
+export class PermissionDeniedException extends DomainException {
+  constructor(
+    message: string = 'Not enough permissions',
+    errorCode: string = 'FORBIDDEN',
+  ) {
+    super(message, errorCode);
+  }
+}

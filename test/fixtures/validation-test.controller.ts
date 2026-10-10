@@ -1,3 +1,4 @@
+import { Public } from '../../src/modules/account/api/auth-metadata';
 import {
   Controller,
   Post,
@@ -38,6 +39,7 @@ export class CreateProductTestDto {
   variants!: VariantTestDto[];
 }
 
+@Public()
 @Controller('test-fixtures')
 export class ValidationTestController {
   @Post('products')

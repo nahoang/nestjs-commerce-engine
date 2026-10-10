@@ -12,6 +12,7 @@ import {
   InsufficientStockException,
   InvalidValueException,
   UnauthenticatedException,
+  PermissionDeniedException,
 } from '../../domain/exceptions';
 import { ErrorResponse } from '../envelope';
 
@@ -24,6 +25,7 @@ import { ErrorResponse } from '../envelope';
  * - DuplicateEntityException, InsufficientStockException, or errorCodes
  *   'DUPLICATE_ENTITY', 'INSUFFICIENT_STOCK', 'VOUCHER_EXHAUSTED' -> 409 CONFLICT
  * - UnauthenticatedException or errorCode 'UNAUTHENTICATED' -> 401 UNAUTHORIZED (+ WWW-Authenticate)
+ * - PermissionDeniedException or errorCode 'FORBIDDEN' -> 403 FORBIDDEN
  * - InvalidValueException (value object invariant) -> 422 UNPROCESSABLE_ENTITY, with
  *   an `errors` item when the offending field is known
  * - InvalidOperationException or other domain violations -> 400 BAD_REQUEST
@@ -54,6 +56,13 @@ export class DomainExceptionFilter implements ExceptionFilter<DomainException> {
       exception.errorCode === 'ENTITY_NOT_FOUND'
     ) {
       return HttpStatus.NOT_FOUND;
+    }
+
+    if (
+      exception instanceof PermissionDeniedException ||
+      exception.errorCode === 'FORBIDDEN'
+    ) {
+      return HttpStatus.FORBIDDEN;
     }
 
     if (

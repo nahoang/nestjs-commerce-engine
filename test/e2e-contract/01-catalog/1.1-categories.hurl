@@ -1,8 +1,20 @@
 ﻿# 01-catalog/1.1-categories.hurl
 # Test contract for Step 1.1: Danh mục — CRUD cơ bản (DOMAIN-SPEC-1-CATALOG § 1.1)
 
+# 0. Đăng nhập admin (API-CONVENTIONS §7): mọi request ghi của catalog cần quyền admin
+POST {{base_url}}/api/v1/auth/login
+Content-Type: application/json
+{
+    "email": "{{admin_email}}",
+    "password": "{{admin_password}}"
+}
+HTTP 200
+[Captures]
+admin_token: jsonpath "$.data.access_token"
+
 # 1. Tạo "Thời trang" (không slug) -> slug tự sinh = "thoi-trang-{{run_id}}", parent_id = null
 POST {{base_url}}/api/v1/categories
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Thời trang {{run_id}}"
@@ -23,6 +35,7 @@ parent_slug: jsonpath "$.data.slug"
 
 # 2. Tạo "Đồ Nam" với parent_id = id "Thời trang" -> 201, parent_id đúng
 POST {{base_url}}/api/v1/categories
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Đồ Nam {{run_id}}",
@@ -39,6 +52,7 @@ jsonpath "$.data.is_active" == true
 
 # 3. Tạo danh mục với parent_id không tồn tại -> 404 ENTITY_NOT_FOUND
 POST {{base_url}}/api/v1/categories
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Lỗi Parent {{run_id}}",
@@ -52,6 +66,7 @@ jsonpath "$.detail" exists
 
 # 4. Tạo hai danh mục cùng slug -> lần 2 trả 409 DUPLICATE_ENTITY
 POST {{base_url}}/api/v1/categories
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Thời trang {{run_id}}"
@@ -64,6 +79,7 @@ jsonpath "$.detail" exists
 
 # 5. name = "" -> 422 VALIDATION_ERROR, errors[].field = "name"
 POST {{base_url}}/api/v1/categories
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": ""
@@ -77,6 +93,7 @@ jsonpath "$.errors[?(@.field == 'name')]" count >= 1
 
 # 6. Danh sách với limit=1 khi có 2 danh mục -> total >= 2, page=1, page_size=1, has_next=true
 GET {{base_url}}/api/v1/categories?limit=1&offset=0
+Authorization: Bearer {{admin_token}}
 HTTP 200
 [Asserts]
 header "X-Request-ID" exists
@@ -88,6 +105,7 @@ jsonpath "$.has_next" == true
 
 # 7. Lấy chi tiết theo slug và theo id -> cùng kết quả
 GET {{base_url}}/api/v1/categories/{{parent_slug}}
+Authorization: Bearer {{admin_token}}
 HTTP 200
 [Asserts]
 header "X-Request-ID" exists
@@ -95,6 +113,7 @@ jsonpath "$.data.id" == "{{parent_id}}"
 jsonpath "$.data.slug" == "{{parent_slug}}"
 
 GET {{base_url}}/api/v1/categories/{{parent_id}}
+Authorization: Bearer {{admin_token}}
 HTTP 200
 [Asserts]
 header "X-Request-ID" exists

@@ -2,6 +2,8 @@ export * from './register.request';
 export * from './auth.requests';
 export * from './user.response';
 export * from './token.response';
+export * from './auth-metadata';
 export * from './jwt-auth.guard';
+export * from './roles.guard';
 export * from './current-user.decorator';
 export * from './auth.controller';

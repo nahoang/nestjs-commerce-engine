@@ -1,8 +1,7 @@
 import { INestApplication } from '@nestjs/common';
-import { Server } from 'http';
-import * as request from 'supertest';
 import { createTestApp } from '../helpers/test-app';
 import { truncateAll } from '../helpers/db';
+import { adminApi, resetWithAdmin } from '../helpers/auth';
 import { runConcurrently } from '../helpers/concurrency';
 import { PrismaService } from '../../src/shared/infrastructure/prisma/prisma.service';
 import { ApiResponse } from '../../src/shared/api/envelope';
@@ -24,17 +23,15 @@ describe('Channel listing uniqueness under concurrency (e2e) — DOMAIN-SPEC-1-C
   });
 
   beforeEach(async () => {
-    await truncateAll(prisma);
+    await resetWithAdmin(prisma);
   });
 
-  const server = (): Server => app.getHttpServer() as Server;
-
   it('exactly one of N simultaneous listings of the same (variant, channel) wins; the others get 409', async () => {
-    await request(server())
+    await adminApi(app)
       .post('/api/v1/channels')
       .send({ name: 'VN', slug: 'vn-race', currency: 'VND' })
       .expect(201);
-    const created = await request(server())
+    const created = await adminApi(app)
       .post('/api/v1/products')
       .send({
         name: 'Race',
@@ -47,7 +44,7 @@ describe('Channel listing uniqueness under concurrency (e2e) — DOMAIN-SPEC-1-C
       .variants[0].id;
 
     const statuses = await runConcurrently(8, async (i) => {
-      const res = await request(server())
+      const res = await adminApi(app)
         .post('/api/v1/channels/vn-race/listings')
         .send({ variant_id: variantId, price_amount: `${i + 1}` });
       return res.status;

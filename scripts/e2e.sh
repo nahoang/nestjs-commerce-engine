@@ -22,6 +22,11 @@ export NODE_ENV="test"
 # Contract files log in many times from one IP; keep throttling out of their way
 export LOGIN_RATE_LIMIT="${LOGIN_RATE_LIMIT:-1000}"
 
+# Admin account the contract files log in with. The app creates it at startup from the
+# BOOTSTRAP_* variables (skipped when it already exists); these are test-only credentials.
+export BOOTSTRAP_ADMIN_EMAIL="${BOOTSTRAP_ADMIN_EMAIL:-contract-admin@example.com}"
+export BOOTSTRAP_ADMIN_PASSWORD="${BOOTSTRAP_ADMIN_PASSWORD:-contract-admin-password}"
+
 if ! command -v hurl &> /dev/null; then
   if [ -d "${HOME}/AppData/Local/Programs/hurl" ]; then
     export PATH="${HOME}/AppData/Local/Programs/hurl:${PATH}"
@@ -79,6 +84,8 @@ echo "=== 5. Running Hurl contract tests ==="
 hurl --test \
   --variable base_url="${HOST}" \
   --variable run_id="${RUN_ID}" \
+  --variable admin_email="${BOOTSTRAP_ADMIN_EMAIL}" \
+  --variable admin_password="${BOOTSTRAP_ADMIN_PASSWORD}" \
   ${HURL_FILES}
 
 echo "=== Hurl contract tests completed successfully! ==="

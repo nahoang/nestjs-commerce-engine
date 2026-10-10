@@ -4,6 +4,7 @@ import { EntityNotFoundException } from '../../../shared/domain/exceptions';
 import { ListParams } from '../../../shared/application/repository';
 import { Product } from '../domain/product.entity';
 import { CategoryRepository } from './category.repository';
+import { canSeeDrafts, Viewer } from './product-visibility';
 import { ProductFilter, ProductSortBy } from './product-filter';
 import { ProductRepository } from './product.repository';
 
@@ -15,6 +16,7 @@ export interface SearchProductsCommand {
   currency?: string;
   isPublished?: boolean;
   sortBy?: ProductSortBy;
+  viewer: Viewer;
 }
 
 export interface SearchProductsResult {
@@ -40,7 +42,8 @@ export class SearchProductsUseCase {
       minPrice: command.minPrice,
       maxPrice: command.maxPrice,
       currency: command.currency,
-      isPublished: command.isPublished,
+      // R3/R4: viewers who cannot see drafts always get published only; the parameter is ignored
+      isPublished: canSeeDrafts(command.viewer) ? command.isPublished : true,
       sortBy: command.sortBy ?? 'newest',
     };
 

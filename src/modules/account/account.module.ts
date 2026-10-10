@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppConfigService } from '../../shared/infrastructure/config/app-config.service';
 import { PrismaModule } from '../../shared/infrastructure/prisma/prisma.module';
 import { AuthController } from './api/auth.controller';
 import { JwtAuthGuard } from './api/jwt-auth.guard';
+import { RolesGuard } from './api/roles.guard';
 import { AuthenticateUserUseCase } from './application/authenticate-user.use-case';
 import { BootstrapAdminUseCase } from './application/bootstrap-admin.use-case';
 import { ChangePasswordUseCase } from './application/change-password.use-case';
@@ -52,19 +54,15 @@ import { RandomTokenKeyGenerator } from './infrastructure/random-token-key.gener
     RegisterUserUseCase,
     AuthenticateUserUseCase,
     ChangePasswordUseCase,
-    JwtAuthGuard,
+    // Global guards run in registration order: authenticate first, then authorize
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
     AdminBootstrapService,
     { provide: UserRepository, useClass: PrismaUserRepository },
     { provide: PasswordHasher, useClass: Argon2PasswordHasher },
     { provide: TokenKeyGenerator, useClass: RandomTokenKeyGenerator },
     { provide: TokenService, useClass: JwtTokenService },
   ],
-  exports: [
-    UserRepository,
-    PasswordHasher,
-    TokenKeyGenerator,
-    TokenService,
-    JwtAuthGuard,
-  ],
+  exports: [UserRepository, PasswordHasher, TokenKeyGenerator, TokenService],
 })
 export class AccountModule {}

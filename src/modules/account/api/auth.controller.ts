@@ -20,9 +20,9 @@ import { AuthenticateUserUseCase } from '../application/authenticate-user.use-ca
 import { ChangePasswordUseCase } from '../application/change-password.use-case';
 import { RegisterUserUseCase } from '../application/register-user.use-case';
 import { User } from '../domain/user.entity';
+import { Public } from './auth-metadata';
 import { ChangePasswordRequest, LoginRequest } from './auth.requests';
 import { CurrentUser } from './current-user.decorator';
-import { JwtAuthGuard } from './jwt-auth.guard';
 import { RegisterRequest } from './register.request';
 import { TokenResponse, toTokenResponse } from './token.response';
 import { UserResponse, toUserResponse } from './user.response';
@@ -99,6 +99,7 @@ export class AuthController {
     private readonly changePasswordUseCase: ChangePasswordUseCase,
   ) {}
 
+  @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a customer account' })
@@ -118,6 +119,7 @@ export class AuthController {
   }
 
   // R6: the throttler guard is attached to this route only
+  @Public()
   @Post('login')
   @UseGuards(ThrottlerGuard)
   @HttpCode(HttpStatus.OK)
@@ -135,7 +137,6 @@ export class AuthController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'The authenticated user' })
   @SwaggerResponse({ status: 200, type: UserResponse })
@@ -148,7 +149,6 @@ export class AuthController {
   }
 
   @Post('change-password')
-  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({

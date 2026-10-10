@@ -2,6 +2,7 @@ import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import * as fs from 'fs';
 import * as path from 'path';
+import { Public } from '../modules/account/api/auth-metadata';
 
 function getAppVersion(): string {
   try {
@@ -21,6 +22,7 @@ const appVersion = getAppVersion();
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
+  @Public()
   @Get()
   async check(): Promise<{ status: string; version: string; error?: string }> {
     try {

@@ -1,8 +1,7 @@
 import { INestApplication } from '@nestjs/common';
-import { Server } from 'http';
-import * as request from 'supertest';
 import { createTestApp } from '../helpers/test-app';
 import { truncateAll } from '../helpers/db';
+import { adminApi, resetWithAdmin } from '../helpers/auth';
 import { runConcurrently } from '../helpers/concurrency';
 import { PrismaService } from '../../src/shared/infrastructure/prisma/prisma.service';
 import { ApiResponse } from '../../src/shared/api/envelope';
@@ -24,22 +23,20 @@ describe('Product aggregate invariants under concurrency (e2e) — DOMAIN-SPEC-1
   });
 
   beforeEach(async () => {
-    await truncateAll(prisma);
+    await resetWithAdmin(prisma);
   });
-
-  const server = (): Server => app.getHttpServer() as Server;
 
   it('simultaneous variants in different currencies never leave a product with mixed currencies', async () => {
     const rounds = 10;
     for (let round = 0; round < rounds; round++) {
-      const created = await request(server())
+      const created = await adminApi(app)
         .post('/api/v1/products')
         .send({ name: `Race ${round}` })
         .expect(201);
       const productId = (created.body as ApiResponse<ProductResponse>).data.id;
 
       const statuses = await runConcurrently(4, async (i) => {
-        const res = await request(server())
+        const res = await adminApi(app)
           .post(`/api/v1/products/${productId}/variants`)
           .send({
             sku: `R${round}-${i}`,

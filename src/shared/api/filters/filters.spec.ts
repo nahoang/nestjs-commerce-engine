@@ -16,6 +16,7 @@ import {
   InvalidOperationException,
   InvalidValueException,
   UnauthenticatedException,
+  PermissionDeniedException,
 } from '../../domain/exceptions';
 
 function createMockHost(): {
@@ -103,6 +104,18 @@ describe('Exception Filters Unit Tests', () => {
       expect(jsonMock).toHaveBeenCalledWith({
         detail: 'Could not validate credentials',
         error_code: 'UNAUTHENTICATED',
+      });
+    });
+
+    it('should translate PermissionDeniedException to HTTP 403 with FORBIDDEN', () => {
+      const { host, statusMock, jsonMock } = createMockHost();
+
+      filter.catch(new PermissionDeniedException(), host);
+
+      expect(statusMock).toHaveBeenCalledWith(HttpStatus.FORBIDDEN);
+      expect(jsonMock).toHaveBeenCalledWith({
+        detail: 'Not enough permissions',
+        error_code: 'FORBIDDEN',
       });
     });
 

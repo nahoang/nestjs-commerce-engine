@@ -1,8 +1,20 @@
 # 01-catalog/1.4-variants.hurl
 # Test contract for Step 1.4: Biến thể (variant) & chống N+1 (DOMAIN-SPEC-1-CATALOG § 1.4)
 
+# 0. Đăng nhập admin (API-CONVENTIONS §7): mọi request ghi của catalog cần quyền admin
+POST {{base_url}}/api/v1/auth/login
+Content-Type: application/json
+{
+    "email": "{{admin_email}}",
+    "password": "{{admin_password}}"
+}
+HTTP 200
+[Captures]
+admin_token: jsonpath "$.data.access_token"
+
 # 1. Tạo sản phẩm kèm 3 biến thể M/L/XL -> price_amount là chuỗi thập phân
 POST {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Áo Thun Biến Thể {{run_id}}",
@@ -21,6 +33,7 @@ product_id: jsonpath "$.data.id"
 product_slug: jsonpath "$.data.slug"
 
 GET {{base_url}}/api/v1/products/{{product_slug}}
+Authorization: Bearer {{admin_token}}
 HTTP 200
 [Asserts]
 jsonpath "$.data.variants" count == 3
@@ -33,6 +46,7 @@ jsonpath "$.data.variants[?(@.name=='M')].product_id" nth 0 == "{{product_id}}"
 
 # 2. Hai biến thể cùng SKU trong một payload -> 409, không sản phẩm nào được tạo
 POST {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Payload Trùng SKU {{run_id}}",
@@ -47,12 +61,14 @@ header "X-Request-ID" exists
 jsonpath "$.error_code" == "DUPLICATE_ENTITY"
 
 GET {{base_url}}/api/v1/products/payload-trung-sku-{{run_id}}
+Authorization: Bearer {{admin_token}}
 HTTP 404
 [Asserts]
 jsonpath "$.error_code" == "ENTITY_NOT_FOUND"
 
 # 3. Thêm biến thể với SKU đã tồn tại ở sản phẩm khác -> 409
 POST {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Sản Phẩm Khác {{run_id}}"
@@ -62,6 +78,7 @@ HTTP 201
 other_product_id: jsonpath "$.data.id"
 
 POST {{base_url}}/api/v1/products/{{other_product_id}}/variants
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "sku": "V14-M-{{run_id}}",
@@ -74,6 +91,7 @@ jsonpath "$.error_code" == "DUPLICATE_ENTITY"
 
 # 3b. Thêm biến thể hợp lệ -> 201, price_amount là chuỗi, currency mặc định USD
 POST {{base_url}}/api/v1/products/{{other_product_id}}/variants
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "sku": "V14-NEW-{{run_id}}",
@@ -92,6 +110,7 @@ jsonpath "$.data.updated_at" exists
 
 # 4a. price_amount = -1 -> 422
 POST {{base_url}}/api/v1/products/{{other_product_id}}/variants
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "sku": "V14-NEG-{{run_id}}",
@@ -105,6 +124,7 @@ jsonpath "$.errors[0].field" == "price_amount"
 
 # 4b. currency = "us" -> 422
 POST {{base_url}}/api/v1/products/{{other_product_id}}/variants
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "sku": "V14-CUR-{{run_id}}",
@@ -119,6 +139,7 @@ jsonpath "$.errors[0].field" == "currency"
 
 # 4c. currency = "vnd" -> lưu "VND" (sản phẩm riêng: mọi biến thể của một sản phẩm cùng tiền tệ)
 POST {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Sản Phẩm VND {{run_id}}"
@@ -128,6 +149,7 @@ HTTP 201
 vnd_product_id: jsonpath "$.data.id"
 
 POST {{base_url}}/api/v1/products/{{vnd_product_id}}/variants
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "sku": "V14-VND-{{run_id}}",
@@ -142,6 +164,7 @@ jsonpath "$.data.price_amount" == "1000.00"
 
 # 5. product_id không tồn tại -> 404
 POST {{base_url}}/api/v1/products/00000000-0000-0000-0000-000000000000/variants
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "sku": "V14-404-{{run_id}}",

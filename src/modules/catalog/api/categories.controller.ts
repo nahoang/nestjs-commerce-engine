@@ -33,6 +33,7 @@ import {
   toCategoryResponse,
   toCategoryNodeResponse,
 } from './category.response';
+import { Public, Roles } from '../../account/api/auth-metadata';
 
 @ApiTags('Categories')
 @Controller('api/v1/categories')
@@ -45,6 +46,7 @@ export class CategoriesController {
     private readonly getBreadcrumbsUseCase: GetBreadcrumbsUseCase,
   ) {}
 
+  @Roles('admin')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a category' })
@@ -66,6 +68,7 @@ export class CategoriesController {
     return ok(toCategoryResponse(category));
   }
 
+  @Public()
   @Get()
   @ApiOperation({ summary: 'List categories (offset pagination)' })
   @SwaggerResponse({
@@ -84,6 +87,7 @@ export class CategoriesController {
     );
   }
 
+  @Public()
   @Get('tree')
   @ApiOperation({ summary: 'Get the nested category tree (or a subtree)' })
   @SwaggerResponse({
@@ -98,6 +102,7 @@ export class CategoriesController {
     return ok(tree.map(toCategoryNodeResponse));
   }
 
+  @Public()
   @Get(':slugOrId/breadcrumbs')
   @ApiOperation({ summary: 'Get breadcrumbs from the root to this category' })
   @SwaggerResponse({
@@ -112,6 +117,7 @@ export class CategoriesController {
     return ok(breadcrumbs.map(toCategoryResponse));
   }
 
+  @Public()
   @Get(':slugOrId')
   @ApiOperation({ summary: 'Get a category by slug or ID' })
   @SwaggerResponse({

@@ -1,8 +1,8 @@
 import { INestApplication } from '@nestjs/common';
-import { Server } from 'http';
 import * as request from 'supertest';
 import { createTestApp } from '../helpers/test-app';
 import { truncateAll } from '../helpers/db';
+import { adminApi, resetWithAdmin } from '../helpers/auth';
 import { PrismaService } from '../../src/shared/infrastructure/prisma/prisma.service';
 import { ApiResponse, ErrorResponse } from '../../src/shared/api/envelope';
 import { ProductResponse } from '../../src/modules/catalog/api/product.response';
@@ -25,19 +25,17 @@ describe('Product domain rules (e2e) — DOMAIN-SPEC-1-CATALOG § 1.5', () => {
   });
 
   beforeEach(async () => {
-    await truncateAll(prisma);
+    await resetWithAdmin(prisma);
   });
 
-  const server = (): Server => app.getHttpServer() as Server;
-
   const createProduct = (body: Record<string, unknown>): request.Test =>
-    request(server()).post('/api/v1/products').send(body);
+    adminApi(app).post('/api/v1/products').send(body);
 
   const addVariant = (
     productId: string,
     body: Record<string, unknown>,
   ): request.Test =>
-    request(server()).post(`/api/v1/products/${productId}/variants`).send(body);
+    adminApi(app).post(`/api/v1/products/${productId}/variants`).send(body);
 
   const newProduct = async (
     body: Record<string, unknown> = { name: 'Base product' },
@@ -62,7 +60,7 @@ describe('Product domain rules (e2e) — DOMAIN-SPEC-1-CATALOG § 1.5', () => {
     });
 
     it('4b. POST /categories with an invalid slug returns 422 on field slug', async () => {
-      const res = await request(server())
+      const res = await adminApi(app)
         .post('/api/v1/categories')
         .send({ name: 'Do Nam', slug: 'Do_Nam' })
         .expect(422);
@@ -86,7 +84,7 @@ describe('Product domain rules (e2e) — DOMAIN-SPEC-1-CATALOG § 1.5', () => {
 
       const category = (
         (
-          await request(server())
+          await adminApi(app)
             .post('/api/v1/categories')
             .send({ name: '_Hidden_' })
             .expect(201)
@@ -176,7 +174,7 @@ describe('Product domain rules (e2e) — DOMAIN-SPEC-1-CATALOG § 1.5', () => {
     it('6. publishing a product without variants returns 400; with a variant returns 200 and is_published = true', async () => {
       const product = await newProduct({ name: 'Draft' });
 
-      const refused = await request(server())
+      const refused = await adminApi(app)
         .post(`/api/v1/products/${product.id}/publish`)
         .expect(400);
       expect((refused.body as ErrorResponse).error_code).toBe(
@@ -193,7 +191,7 @@ describe('Product domain rules (e2e) — DOMAIN-SPEC-1-CATALOG § 1.5', () => {
         price_amount: '5',
       }).expect(201);
 
-      const published = await request(server())
+      const published = await adminApi(app)
         .post(`/api/v1/products/${product.id}/publish`)
         .expect(200);
       const data = (published.body as ApiResponse<ProductResponse>).data;
@@ -211,9 +209,9 @@ describe('Product domain rules (e2e) — DOMAIN-SPEC-1-CATALOG § 1.5', () => {
         variants: [{ sku: 'L-1', name: 'One', price_amount: '5' }],
       });
       const publish = (): request.Test =>
-        request(server()).post(`/api/v1/products/${product.id}/publish`);
+        adminApi(app).post(`/api/v1/products/${product.id}/publish`);
       const unpublish = (): request.Test =>
-        request(server()).post(`/api/v1/products/${product.id}/unpublish`);
+        adminApi(app).post(`/api/v1/products/${product.id}/unpublish`);
 
       await publish().expect(200);
       const afterFirst = await prisma.product.findUniqueOrThrow({
@@ -236,15 +234,13 @@ describe('Product domain rules (e2e) — DOMAIN-SPEC-1-CATALOG § 1.5', () => {
     it('6c. publish / unpublish of an unknown product return 404', async () => {
       const id = '00000000-0000-0000-0000-000000000000';
 
-      const publish = await request(server())
+      const publish = await adminApi(app)
         .post(`/api/v1/products/${id}/publish`)
         .expect(404);
       expect((publish.body as ErrorResponse).error_code).toBe(
         'ENTITY_NOT_FOUND',
       );
-      await request(server())
-        .post(`/api/v1/products/${id}/unpublish`)
-        .expect(404);
+      await adminApi(app).post(`/api/v1/products/${id}/unpublish`).expect(404);
     });
 
     it('6d. creating with is_published=true and no variants returns 400 and creates nothing', async () => {

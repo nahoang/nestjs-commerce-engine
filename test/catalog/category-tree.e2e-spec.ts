@@ -1,8 +1,7 @@
 import { INestApplication } from '@nestjs/common';
-import { Server } from 'http';
-import * as request from 'supertest';
 import { createTestApp } from '../helpers/test-app';
 import { truncateAll } from '../helpers/db';
+import { adminApi, resetWithAdmin } from '../helpers/auth';
 import { PrismaService } from '../../src/shared/infrastructure/prisma/prisma.service';
 import { ApiResponse, ErrorResponse } from '../../src/shared/api/envelope';
 import {
@@ -26,7 +25,7 @@ describe('CategoriesController Tree & Breadcrumbs (e2e) — DOMAIN-SPEC-1-CATALO
   });
 
   beforeEach(async () => {
-    await truncateAll(prisma);
+    await resetWithAdmin(prisma);
   });
 
   // Helper function to seed hierarchy:
@@ -35,25 +34,25 @@ describe('CategoriesController Tree & Breadcrumbs (e2e) — DOMAIN-SPEC-1-CATALO
   //         ├── Áo thun
   //         └── Quần jeans
   async function seedTestHierarchy() {
-    const rootRes = await request(app.getHttpServer() as Server)
+    const rootRes = await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: 'Thời trang', slug: 'thoi-trang' })
       .expect(201);
     const root = (rootRes.body as ApiResponse<CategoryResponse>).data;
 
-    const menRes = await request(app.getHttpServer() as Server)
+    const menRes = await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: 'Đồ Nam', slug: 'do-nam', parent_id: root.id })
       .expect(201);
     const men = (menRes.body as ApiResponse<CategoryResponse>).data;
 
-    const tshirtRes = await request(app.getHttpServer() as Server)
+    const tshirtRes = await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: 'Áo thun', slug: 'ao-thun', parent_id: men.id })
       .expect(201);
     const tshirt = (tshirtRes.body as ApiResponse<CategoryResponse>).data;
 
-    const jeansRes = await request(app.getHttpServer() as Server)
+    const jeansRes = await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: 'Quần jeans', slug: 'quan-jeans', parent_id: men.id })
       .expect(201);
@@ -66,9 +65,7 @@ describe('CategoriesController Tree & Breadcrumbs (e2e) — DOMAIN-SPEC-1-CATALO
   it('1. GET /api/v1/categories/tree returns 1 root, 3 nested levels, and siblings sorted by slug', async () => {
     await seedTestHierarchy();
 
-    const res = await request(app.getHttpServer() as Server)
-      .get('/api/v1/categories/tree')
-      .expect(200);
+    const res = await adminApi(app).get('/api/v1/categories/tree').expect(200);
 
     const body = res.body as ApiResponse<CategoryNodeResponse[]>;
     expect(body.data).toHaveLength(1);
@@ -100,7 +97,7 @@ describe('CategoriesController Tree & Breadcrumbs (e2e) — DOMAIN-SPEC-1-CATALO
     const { men } = await seedTestHierarchy();
 
     // Query subtree by slug
-    const resBySlug = await request(app.getHttpServer() as Server)
+    const resBySlug = await adminApi(app)
       .get('/api/v1/categories/tree?root_id=do-nam')
       .expect(200);
 
@@ -113,7 +110,7 @@ describe('CategoriesController Tree & Breadcrumbs (e2e) — DOMAIN-SPEC-1-CATALO
     expect(bodyBySlug.data[0].children[1].slug).toBe('quan-jeans');
 
     // Query subtree by ID
-    const resById = await request(app.getHttpServer() as Server)
+    const resById = await adminApi(app)
       .get(`/api/v1/categories/tree?root_id=${men.id}`)
       .expect(200);
 
@@ -128,7 +125,7 @@ describe('CategoriesController Tree & Breadcrumbs (e2e) — DOMAIN-SPEC-1-CATALO
     const { root, men, tshirt } = await seedTestHierarchy();
 
     // By slug
-    const res = await request(app.getHttpServer() as Server)
+    const res = await adminApi(app)
       .get('/api/v1/categories/ao-thun/breadcrumbs')
       .expect(200);
 
@@ -142,7 +139,7 @@ describe('CategoriesController Tree & Breadcrumbs (e2e) — DOMAIN-SPEC-1-CATALO
     expect(body.data[2].name).toBe('Áo thun');
 
     // By ID
-    const resById = await request(app.getHttpServer() as Server)
+    const resById = await adminApi(app)
       .get(`/api/v1/categories/${tshirt.id}/breadcrumbs`)
       .expect(200);
 
@@ -157,7 +154,7 @@ describe('CategoriesController Tree & Breadcrumbs (e2e) — DOMAIN-SPEC-1-CATALO
   it('4. GET /api/v1/categories/:slugOrId/breadcrumbs for root category returns single item array', async () => {
     const { root } = await seedTestHierarchy();
 
-    const res = await request(app.getHttpServer() as Server)
+    const res = await adminApi(app)
       .get(`/api/v1/categories/${root.slug}/breadcrumbs`)
       .expect(200);
 
@@ -170,7 +167,7 @@ describe('CategoriesController Tree & Breadcrumbs (e2e) — DOMAIN-SPEC-1-CATALO
 
   // Error Cases: 404 ENTITY_NOT_FOUND
   it('should return 404 ENTITY_NOT_FOUND when root_id does not exist', async () => {
-    const res = await request(app.getHttpServer() as Server)
+    const res = await adminApi(app)
       .get('/api/v1/categories/tree?root_id=nonexistent-root')
       .expect(404);
 
@@ -179,7 +176,7 @@ describe('CategoriesController Tree & Breadcrumbs (e2e) — DOMAIN-SPEC-1-CATALO
   });
 
   it('should return 404 ENTITY_NOT_FOUND when breadcrumbs target does not exist', async () => {
-    const res = await request(app.getHttpServer() as Server)
+    const res = await adminApi(app)
       .get('/api/v1/categories/nonexistent-leaf/breadcrumbs')
       .expect(404);
 

@@ -1,8 +1,8 @@
 import { INestApplication } from '@nestjs/common';
-import { Server } from 'http';
 import * as request from 'supertest';
 import { createTestApp } from '../helpers/test-app';
 import { truncateAll } from '../helpers/db';
+import { adminApi, resetWithAdmin } from '../helpers/auth';
 import { PrismaService } from '../../src/shared/infrastructure/prisma/prisma.service';
 import {
   ApiResponse,
@@ -28,13 +28,11 @@ describe('Product variants (e2e) — DOMAIN-SPEC-1-CATALOG § 1.4', () => {
   });
 
   beforeEach(async () => {
-    await truncateAll(prisma);
+    await resetWithAdmin(prisma);
   });
 
-  const server = (): Server => app.getHttpServer() as Server;
-
   const createProduct = (body: Record<string, unknown>): request.Test =>
-    request(server()).post('/api/v1/products').send(body);
+    adminApi(app).post('/api/v1/products').send(body);
 
   // 1. Product with 3 variants M/L/XL -> detail returns all 3, price_amount is a decimal string
   it('1. creates a product with 3 variants; detail returns decimal-string prices', async () => {
@@ -50,7 +48,7 @@ describe('Product variants (e2e) — DOMAIN-SPEC-1-CATALOG § 1.4', () => {
     const created = (res.body as ApiResponse<ProductResponse>).data;
     expect(created.variants).toHaveLength(3);
 
-    const detail = await request(server())
+    const detail = await adminApi(app)
       .get(`/api/v1/products/${created.slug}`)
       .expect(200);
     const variants = (detail.body as ApiResponse<ProductResponse>).data
@@ -113,7 +111,7 @@ describe('Product variants (e2e) — DOMAIN-SPEC-1-CATALOG § 1.4', () => {
         .body as ApiResponse<ProductResponse>
     ).data;
 
-    const res = await request(server())
+    const res = await adminApi(app)
       .post(`/api/v1/products/${other.id}/variants`)
       .send({ sku: 'SKU-1', name: 'B', price_amount: '2.00' })
       .expect(409);
@@ -127,7 +125,7 @@ describe('Product variants (e2e) — DOMAIN-SPEC-1-CATALOG § 1.4', () => {
         .body as ApiResponse<ProductResponse>
     ).data;
 
-    const res = await request(server())
+    const res = await adminApi(app)
       .post(`/api/v1/products/${product.id}/variants`)
       .send({ sku: 'G-1', name: 'One', price_amount: '19.9' })
       .expect(201);
@@ -136,7 +134,7 @@ describe('Product variants (e2e) — DOMAIN-SPEC-1-CATALOG § 1.4', () => {
     expect(variant.price_amount).toBe('19.90');
     expect(variant.currency).toBe('USD');
 
-    const detail = await request(server())
+    const detail = await adminApi(app)
       .get(`/api/v1/products/${product.id}`)
       .expect(200);
     expect(
@@ -171,7 +169,7 @@ describe('Product variants (e2e) — DOMAIN-SPEC-1-CATALOG § 1.4', () => {
     ).data;
     const url = `/api/v1/products/${product.id}/variants`;
 
-    const bad = await request(server())
+    const bad = await adminApi(app)
       .post(url)
       .send({ sku: 'C-1', name: 'A', price_amount: '1', currency: 'us' })
       .expect(422);
@@ -179,7 +177,7 @@ describe('Product variants (e2e) — DOMAIN-SPEC-1-CATALOG § 1.4', () => {
       (bad.body as ErrorResponse).errors?.some((e) => e.field === 'currency'),
     ).toBe(true);
 
-    const good = await request(server())
+    const good = await adminApi(app)
       .post(url)
       .send({ sku: 'C-2', name: 'A', price_amount: '1', currency: 'vnd' })
       .expect(201);
@@ -194,7 +192,7 @@ describe('Product variants (e2e) — DOMAIN-SPEC-1-CATALOG § 1.4', () => {
         .body as ApiResponse<ProductResponse>
     ).data;
 
-    const res = await request(server())
+    const res = await adminApi(app)
       .post(`/api/v1/products/${product.id}/variants`)
       .send({ sku: 'P-1', name: 'A', price_amount: '9999999999.99' })
       .expect(201);
@@ -205,7 +203,7 @@ describe('Product variants (e2e) — DOMAIN-SPEC-1-CATALOG § 1.4', () => {
 
   // 5. Unknown product -> 404
   it('5. POST variant for an unknown product returns 404 ENTITY_NOT_FOUND', async () => {
-    const res = await request(server())
+    const res = await adminApi(app)
       .post('/api/v1/products/00000000-0000-0000-0000-000000000000/variants')
       .send({ sku: 'X-1', name: 'A', price_amount: '1' })
       .expect(404);
@@ -231,7 +229,7 @@ describe('Product variants (e2e) — DOMAIN-SPEC-1-CATALOG § 1.4', () => {
   // R6: the number of queries to list N products with variants does not depend on N
   describe('R6. no N+1 when listing products with variants', () => {
     async function seed(count: number): Promise<void> {
-      await truncateAll(prisma);
+      await resetWithAdmin(prisma);
       for (let i = 0; i < count; i++) {
         await prisma.product.create({
           data: {
@@ -258,7 +256,7 @@ describe('Product variants (e2e) — DOMAIN-SPEC-1-CATALOG § 1.4', () => {
         }
       });
       try {
-        const res = await request(server())
+        const res = await adminApi(app)
           .get(`/api/v1/products?limit=${limit}`)
           .expect(200);
         const body = res.body as PaginatedResponse<ProductResponse>;

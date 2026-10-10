@@ -36,6 +36,7 @@ import {
   ProductResponse,
   toStorefrontProductResponse,
 } from './product.response';
+import { Public, Roles } from '../../account/api/auth-metadata';
 
 const CREATE_CHANNEL_EXAMPLES = {
   A_vn_store: {
@@ -95,6 +96,7 @@ export class ChannelsController {
     private readonly getChannelStorefrontUseCase: GetChannelStorefrontUseCase,
   ) {}
 
+  @Roles('admin')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a sales channel' })
@@ -112,6 +114,7 @@ export class ChannelsController {
     return ok(toChannelResponse(channel));
   }
 
+  @Public()
   @Get()
   @ApiOperation({ summary: 'List channels (offset pagination)' })
   @SwaggerResponse({ status: 200, description: 'Paginated list of channels' })
@@ -127,6 +130,7 @@ export class ChannelsController {
     );
   }
 
+  @Public()
   @Get(':slug')
   @ApiOperation({ summary: 'Get a channel by slug' })
   @SwaggerResponse({ status: 200, type: ChannelResponse })
@@ -136,6 +140,7 @@ export class ChannelsController {
     return ok(toChannelResponse(await this.getChannelUseCase.execute(slug)));
   }
 
+  @Roles('admin')
   @Patch(':slug')
   @ApiOperation({
     summary: 'Rename or switch a channel on/off (currency is fixed)',
@@ -154,6 +159,7 @@ export class ChannelsController {
     return ok(toChannelResponse(channel));
   }
 
+  @Roles('admin')
   @Post(':channelSlug/listings')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -174,6 +180,7 @@ export class ChannelsController {
     return ok(toListingResponse(listing));
   }
 
+  @Public()
   @Get(':channelSlug/products')
   @ApiOperation({
     summary: 'Storefront of a channel: published products with channel prices',

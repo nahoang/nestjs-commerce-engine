@@ -1,3 +1,4 @@
+import { Public } from '../../src/modules/account/api/auth-metadata';
 import { Controller, Get, ForbiddenException } from '@nestjs/common';
 import {
   EntityNotFoundException,
@@ -6,6 +7,7 @@ import {
   InvalidOperationException,
 } from '../../src/shared/domain/exceptions';
 
+@Public()
 @Controller('test-exceptions')
 export class ExceptionTestController {
   @Get('entity-not-found')

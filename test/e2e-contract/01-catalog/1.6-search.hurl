@@ -2,8 +2,20 @@
 # Test contract for Step 1.6: Tìm kiếm & lọc sản phẩm (DOMAIN-SPEC-1-CATALOG § 1.6)
 # Truy vấn được giới hạn theo danh mục/từ khóa của {{run_id}} để không lẫn dữ liệu của file khác.
 
+# 0. Đăng nhập admin (API-CONVENTIONS §7): mọi request ghi của catalog cần quyền admin
+POST {{base_url}}/api/v1/auth/login
+Content-Type: application/json
+{
+    "email": "{{admin_email}}",
+    "password": "{{admin_password}}"
+}
+HTTP 200
+[Captures]
+admin_token: jsonpath "$.data.access_token"
+
 # Seed: cây danh mục Thời trang -> Đồ Nam -> Áo thun
 POST {{base_url}}/api/v1/categories
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 { "name": "Thời trang Tìm {{run_id}}" }
 HTTP 201
@@ -11,6 +23,7 @@ HTTP 201
 root_id: jsonpath "$.data.id"
 
 POST {{base_url}}/api/v1/categories
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 { "name": "Đồ Nam Tìm {{run_id}}", "parent_id": "{{root_id}}" }
 HTTP 201
@@ -18,6 +31,7 @@ HTTP 201
 men_id: jsonpath "$.data.id"
 
 POST {{base_url}}/api/v1/categories
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 { "name": "Áo thun Tìm {{run_id}}", "parent_id": "{{men_id}}" }
 HTTP 201
@@ -28,6 +42,7 @@ tee_id: jsonpath "$.data.id"
 # C (Đồ Nam, VND 300000, "áo" chỉ có trong mô tả), D (gốc, VND 500000),
 # E (không danh mục, chỉ USD 15), F (Áo thun, VND 120000 & 400000)
 POST {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Áo {{run_id}} Thun",
@@ -42,6 +57,7 @@ HTTP 201
 a_id: jsonpath "$.data.id"
 
 POST {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Áo {{run_id}} Sơ Mi",
@@ -53,6 +69,7 @@ Content-Type: application/json
 HTTP 201
 
 POST {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Quần {{run_id}} Jean",
@@ -65,6 +82,7 @@ Content-Type: application/json
 HTTP 201
 
 POST {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Váy {{run_id}} Xòe",
@@ -76,6 +94,7 @@ Content-Type: application/json
 HTTP 201
 
 POST {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Mũ {{run_id}} Lưỡi Trai",
@@ -86,6 +105,7 @@ Content-Type: application/json
 HTTP 201
 
 POST {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Áo {{run_id}} Khoác",
@@ -99,6 +119,7 @@ HTTP 201
 
 # 1. keyword không phân biệt hoa thường, tìm cả tên lẫn mô tả -> A, B, C (mô tả), F
 GET {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 [QueryStringParams]
 keyword: ÁO {{run_id}}
 HTTP 200
@@ -109,6 +130,7 @@ jsonpath "$.data" count == 4
 
 # 2. category_id = Đồ Nam -> gồm cả sản phẩm của Áo thun (A, F) và của chính nó (B, C)
 GET {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 [QueryStringParams]
 category_id: {{men_id}}
 keyword: {{run_id}}
@@ -119,6 +141,7 @@ jsonpath "$.data[?(@.id == '{{a_id}}')]" count == 1
 
 # 2b. category_id không tồn tại -> 404
 GET {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 [QueryStringParams]
 category_id: 00000000-0000-0000-0000-000000000000
 HTTP 404
@@ -127,6 +150,7 @@ jsonpath "$.error_code" == "ENTITY_NOT_FOUND"
 
 # 3. Khoảng giá theo giá thấp nhất (R5): A (min 90000) bị loại, C (300000) nằm trong khoảng -> B, C, F
 GET {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 [QueryStringParams]
 category_id: {{root_id}}
 min_price: 100000
@@ -139,6 +163,7 @@ jsonpath "$.data" count == 3
 
 # 4. min_price không có currency -> 422, field currency
 GET {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 [QueryStringParams]
 min_price: 100000
 HTTP 422
@@ -148,6 +173,7 @@ jsonpath "$.errors[0].field" == "currency"
 
 # 4b. sort_by=price_asc không có currency -> 422
 GET {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 [QueryStringParams]
 sort_by: price_asc
 HTTP 422
@@ -156,6 +182,7 @@ jsonpath "$.errors[0].field" == "currency"
 
 # 4c. min_price > max_price -> 422
 GET {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 [QueryStringParams]
 min_price: 300000
 max_price: 100000
@@ -166,6 +193,7 @@ jsonpath "$.errors[0].field" == "max_price"
 
 # 5. price_asc: giá thấp nhất tăng dần, sản phẩm không có VND (E) bị loại -> A, F, B, C, D
 GET {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 [QueryStringParams]
 category_id: {{root_id}}
 sort_by: price_asc
@@ -181,6 +209,7 @@ jsonpath "$.data[4].name" == "Váy {{run_id}} Xòe"
 
 # 5b. newest (mặc định): sản phẩm tạo sau xếp trước (F, D, C, B, A)
 GET {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 [QueryStringParams]
 category_id: {{root_id}}
 sort_by: newest
@@ -193,6 +222,7 @@ jsonpath "$.data[4].name" == "Áo {{run_id}} Thun"
 
 # 6. Kết hợp keyword + danh mục + khoảng giá -> giao của các điều kiện: B (250000), F (120000)
 GET {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 [QueryStringParams]
 keyword: áo {{run_id}}
 category_id: {{men_id}}

@@ -1,8 +1,7 @@
 import { INestApplication } from '@nestjs/common';
-import { Server } from 'http';
-import * as request from 'supertest';
 import { createTestApp } from '../helpers/test-app';
 import { truncateAll } from '../helpers/db';
+import { adminApi, resetWithAdmin } from '../helpers/auth';
 import { PrismaService } from '../../src/shared/infrastructure/prisma/prisma.service';
 import {
   ApiResponse,
@@ -28,14 +27,12 @@ describe('ProductsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.3', () => {
   });
 
   beforeEach(async () => {
-    await truncateAll(prisma);
+    await resetWithAdmin(prisma);
   });
-
-  const server = (): Server => app.getHttpServer() as Server;
 
   // 1. Create "Áo Thun Cotton Nam" without a slug → slug is generated, is_published = false
   it('1. POST /api/v1/products without slug auto-slugifies name and defaults to draft', async () => {
-    const res = await request(server())
+    const res = await adminApi(app)
       .post('/api/v1/products')
       .send({ name: 'Áo Thun Cotton Nam' })
       .expect(201);
@@ -50,13 +47,13 @@ describe('ProductsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.3', () => {
   });
 
   it('1b. POST with an existing category_id links the product to it, retrievable by slug and id', async () => {
-    const catRes = await request(server())
+    const catRes = await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: 'Đồ Nam' })
       .expect(201);
     const categoryId = (catRes.body as ApiResponse<CategoryResponse>).data.id;
 
-    const createRes = await request(server())
+    const createRes = await adminApi(app)
       .post('/api/v1/products')
       .send({
         name: 'Áo Sơ Mi',
@@ -67,10 +64,10 @@ describe('ProductsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.3', () => {
     const created = (createRes.body as ApiResponse<ProductResponse>).data;
     expect(created.category_id).toBe(categoryId);
 
-    const bySlug = await request(server())
+    const bySlug = await adminApi(app)
       .get(`/api/v1/products/${created.slug}`)
       .expect(200);
-    const byId = await request(server())
+    const byId = await adminApi(app)
       .get(`/api/v1/products/${created.id}`)
       .expect(200);
 
@@ -83,7 +80,7 @@ describe('ProductsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.3', () => {
   });
 
   it('1c. GET /api/v1/products/:slugOrId returns 404 for unknown product', async () => {
-    const res = await request(server())
+    const res = await adminApi(app)
       .get('/api/v1/products/khong-ton-tai')
       .expect(404);
     expect((res.body as ErrorResponse).error_code).toBe('ENTITY_NOT_FOUND');
@@ -91,7 +88,7 @@ describe('ProductsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.3', () => {
 
   // 2. Non-existent category_id → 404
   it('2. POST with non-existent category_id returns 404 ENTITY_NOT_FOUND', async () => {
-    const res = await request(server())
+    const res = await adminApi(app)
       .post('/api/v1/products')
       .send({
         name: 'Áo Thun',
@@ -105,13 +102,13 @@ describe('ProductsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.3', () => {
   // 3. Pagination with 5 products
   it('3. GET /api/v1/products paginates 5 products deterministically (newest first)', async () => {
     for (let i = 1; i <= 5; i++) {
-      await request(server())
+      await adminApi(app)
         .post('/api/v1/products')
         .send({ name: `Product ${i}` })
         .expect(201);
     }
 
-    const first = await request(server())
+    const first = await adminApi(app)
       .get('/api/v1/products?limit=2&offset=0')
       .expect(200);
     const firstBody = first.body as PaginatedResponse<ProductResponse>;
@@ -125,7 +122,7 @@ describe('ProductsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.3', () => {
       'product-4',
     ]);
 
-    const last = await request(server())
+    const last = await adminApi(app)
       .get('/api/v1/products?limit=2&offset=4')
       .expect(200);
     const lastBody = last.body as PaginatedResponse<ProductResponse>;
@@ -137,12 +134,12 @@ describe('ProductsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.3', () => {
 
   // 4. Duplicate slug → 409
   it('4. POST with duplicate slug returns 409 DUPLICATE_ENTITY', async () => {
-    await request(server())
+    await adminApi(app)
       .post('/api/v1/products')
       .send({ name: 'Áo Thun' })
       .expect(201);
 
-    const res = await request(server())
+    const res = await adminApi(app)
       .post('/api/v1/products')
       .send({ name: 'Áo Thun' })
       .expect(409);
@@ -151,7 +148,7 @@ describe('ProductsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.3', () => {
   });
 
   it('5. POST with empty name returns 422 VALIDATION_ERROR on field name', async () => {
-    const res = await request(server())
+    const res = await adminApi(app)
       .post('/api/v1/products')
       .send({ name: '' })
       .expect(422);
@@ -163,13 +160,13 @@ describe('ProductsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.3', () => {
 
   // R4: deleting a category keeps the product and sets category_id = NULL
   it('R4. deleting a category keeps the product and nulls category_id', async () => {
-    const catRes = await request(server())
+    const catRes = await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: 'Temporary' })
       .expect(201);
     const categoryId = (catRes.body as ApiResponse<CategoryResponse>).data.id;
 
-    const prodRes = await request(server())
+    const prodRes = await adminApi(app)
       .post('/api/v1/products')
       .send({ name: 'Keep me', category_id: categoryId })
       .expect(201);
@@ -177,7 +174,7 @@ describe('ProductsController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.3', () => {
 
     await prisma.category.delete({ where: { id: categoryId } });
 
-    const res = await request(server())
+    const res = await adminApi(app)
       .get(`/api/v1/products/${productId}`)
       .expect(200);
     expect(

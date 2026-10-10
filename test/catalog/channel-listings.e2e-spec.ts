@@ -1,8 +1,8 @@
 import { INestApplication } from '@nestjs/common';
-import { Server } from 'http';
 import * as request from 'supertest';
 import { createTestApp } from '../helpers/test-app';
 import { truncateAll } from '../helpers/db';
+import { adminApi, resetWithAdmin } from '../helpers/auth';
 import { PrismaService } from '../../src/shared/infrastructure/prisma/prisma.service';
 import {
   ApiResponse,
@@ -28,13 +28,11 @@ describe('Channel listings & storefront (e2e) — DOMAIN-SPEC-1-CATALOG § 1.8',
   });
 
   beforeEach(async () => {
-    await truncateAll(prisma);
+    await resetWithAdmin(prisma);
   });
 
-  const server = (): Server => app.getHttpServer() as Server;
-
   async function createChannel(slug: string, currency: string): Promise<void> {
-    await request(server())
+    await adminApi(app)
       .post('/api/v1/channels')
       .send({ name: slug, slug, currency })
       .expect(201);
@@ -46,7 +44,7 @@ describe('Channel listings & storefront (e2e) — DOMAIN-SPEC-1-CATALOG § 1.8',
     options: { published?: boolean; variants?: number } = {},
   ): Promise<{ productId: string; variantIds: string[] }> {
     const count = options.variants ?? 1;
-    const res = await request(server())
+    const res = await adminApi(app)
       .post('/api/v1/products')
       .send({
         name,
@@ -71,7 +69,7 @@ describe('Channel listings & storefront (e2e) — DOMAIN-SPEC-1-CATALOG § 1.8',
     variantId: string,
     body: Record<string, unknown>,
   ): request.Test =>
-    request(server())
+    adminApi(app)
       .post(`/api/v1/channels/${channel}/listings`)
       .send({ variant_id: variantId, ...body });
 
@@ -79,7 +77,7 @@ describe('Channel listings & storefront (e2e) — DOMAIN-SPEC-1-CATALOG § 1.8',
     channel: string,
     query = '',
   ): Promise<PaginatedResponse<ProductResponse>> => {
-    const res = await request(server())
+    const res = await adminApi(app)
       .get(`/api/v1/channels/${channel}/products${query}`)
       .expect(200);
     return res.body as PaginatedResponse<ProductResponse>;
@@ -182,19 +180,19 @@ describe('Channel listings & storefront (e2e) — DOMAIN-SPEC-1-CATALOG § 1.8',
     await list('us-store', variantIds[0], { price_amount: '12' }).expect(201);
     expect((await storefront('us-store')).total).toBe(1);
 
-    await request(server())
+    await adminApi(app)
       .patch('/api/v1/channels/us-store')
       .send({ is_active: false })
       .expect(200);
-    const res = await request(server())
+    const res = await adminApi(app)
       .get('/api/v1/channels/us-store/products')
       .expect(404);
     expect((res.body as ErrorResponse).error_code).toBe('ENTITY_NOT_FOUND');
-    await request(server()).get('/api/v1/channels/nope/products').expect(404);
+    await adminApi(app).get('/api/v1/channels/nope/products').expect(404);
     // the listing endpoint keeps working for a switched-off channel (1.7 R4)
     await list('us-store', variantIds[0], { price_amount: '1' }).expect(409);
 
-    await request(server())
+    await adminApi(app)
       .patch('/api/v1/channels/us-store')
       .send({ is_active: true })
       .expect(200);
@@ -213,7 +211,7 @@ describe('Channel listings & storefront (e2e) — DOMAIN-SPEC-1-CATALOG § 1.8',
     expect((await storefront('vn-store')).total).toBe(0);
 
     // publish -> visible right away
-    await request(server())
+    await adminApi(app)
       .post(`/api/v1/products/${productId}/publish`)
       .expect(200);
     const afterPublish = await storefront('vn-store');
@@ -225,19 +223,17 @@ describe('Channel listings & storefront (e2e) — DOMAIN-SPEC-1-CATALOG § 1.8',
     expect((await storefront('vn-store')).data[0].variants).toHaveLength(2);
 
     // unpublish -> gone right away
-    await request(server())
+    await adminApi(app)
       .post(`/api/v1/products/${productId}/unpublish`)
       .expect(200);
     expect((await storefront('vn-store')).total).toBe(0);
 
     // switch off -> 404 right away
-    await request(server())
+    await adminApi(app)
       .patch('/api/v1/channels/vn-store')
       .send({ is_active: false })
       .expect(200);
-    await request(server())
-      .get('/api/v1/channels/vn-store/products')
-      .expect(404);
+    await adminApi(app).get('/api/v1/channels/vn-store/products').expect(404);
   });
 
   it('6b. repeated storefront requests are served from the cache (no product queries)', async () => {

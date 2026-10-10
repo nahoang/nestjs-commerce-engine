@@ -1,8 +1,7 @@
 import { INestApplication } from '@nestjs/common';
-import { Server } from 'http';
-import * as request from 'supertest';
 import { createTestApp } from '../helpers/test-app';
 import { truncateAll } from '../helpers/db';
+import { adminApi, resetWithAdmin } from '../helpers/auth';
 import { PrismaService } from '../../src/shared/infrastructure/prisma/prisma.service';
 import {
   ApiResponse,
@@ -27,12 +26,12 @@ describe('CategoriesController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.1', () => {
   });
 
   beforeEach(async () => {
-    await truncateAll(prisma);
+    await resetWithAdmin(prisma);
   });
 
   // 1. Create "Thời trang" (no slug) → slug = "thoi-trang", parent_id = null
   it('1. POST /api/v1/categories without slug auto-slugifies name and sets parent_id = null', async () => {
-    const res = await request(app.getHttpServer() as Server)
+    const res = await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: 'Thời trang' })
       .expect(201);
@@ -50,14 +49,14 @@ describe('CategoriesController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.1', () => {
 
   // 2. Create "Đồ Nam" with parent_id = id of "Thời trang" → 201, correct parent_id
   it('2. POST /api/v1/categories with parent_id sets parent hierarchy correctly', async () => {
-    const parentRes = await request(app.getHttpServer() as Server)
+    const parentRes = await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: 'Thời trang' })
       .expect(201);
 
     const parentId = (parentRes.body as ApiResponse<CategoryResponse>).data.id;
 
-    const childRes = await request(app.getHttpServer() as Server)
+    const childRes = await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: 'Đồ Nam', parent_id: parentId })
       .expect(201);
@@ -72,7 +71,7 @@ describe('CategoriesController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.1', () => {
   it('3. POST /api/v1/categories with non-existent parent_id returns 404 ENTITY_NOT_FOUND', async () => {
     const nonExistentId = '00000000-0000-0000-0000-000000000000';
 
-    const res = await request(app.getHttpServer() as Server)
+    const res = await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: 'Đồ Nam', parent_id: nonExistentId })
       .expect(404);
@@ -83,12 +82,12 @@ describe('CategoriesController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.1', () => {
 
   // 4. Create two categories with the same slug → second returns 409 DUPLICATE_ENTITY
   it('4. POST /api/v1/categories with duplicate slug returns 409 DUPLICATE_ENTITY', async () => {
-    await request(app.getHttpServer() as Server)
+    await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: 'Thời trang' })
       .expect(201);
 
-    const res = await request(app.getHttpServer() as Server)
+    const res = await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: 'Thời trang' })
       .expect(409);
@@ -99,7 +98,7 @@ describe('CategoriesController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.1', () => {
 
   // 5. name = "" → 422 VALIDATION_ERROR, errors[].field = "name"
   it('5. POST /api/v1/categories with empty name returns 422 VALIDATION_ERROR with errors[].field = "name"', async () => {
-    const res = await request(app.getHttpServer() as Server)
+    const res = await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: '' })
       .expect(422);
@@ -112,17 +111,17 @@ describe('CategoriesController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.1', () => {
 
   // 6. List with limit=1 when 2 categories exist → total=2, page=1, page_size=1, has_next=true
   it('6. GET /api/v1/categories with limit=1 when 2 exist returns paginated envelope', async () => {
-    await request(app.getHttpServer() as Server)
+    await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: 'Thời trang' })
       .expect(201);
 
-    await request(app.getHttpServer() as Server)
+    await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: 'Đồ Nam' })
       .expect(201);
 
-    const res = await request(app.getHttpServer() as Server)
+    const res = await adminApi(app)
       .get('/api/v1/categories?limit=1&offset=0')
       .expect(200);
 
@@ -136,7 +135,7 @@ describe('CategoriesController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.1', () => {
 
   // 7. Get details by slug and by id → identical result
   it('7. GET /api/v1/categories/:slugOrId returns identical result by slug and by id', async () => {
-    const createRes = await request(app.getHttpServer() as Server)
+    const createRes = await adminApi(app)
       .post('/api/v1/categories')
       .send({ name: 'Giày dép' })
       .expect(201);
@@ -144,12 +143,12 @@ describe('CategoriesController (e2e) — DOMAIN-SPEC-1-CATALOG § 1.1', () => {
     const created = (createRes.body as ApiResponse<CategoryResponse>).data;
 
     // By slug
-    const bySlugRes = await request(app.getHttpServer() as Server)
+    const bySlugRes = await adminApi(app)
       .get(`/api/v1/categories/${created.slug}`)
       .expect(200);
 
     // By id
-    const byIdRes = await request(app.getHttpServer() as Server)
+    const byIdRes = await adminApi(app)
       .get(`/api/v1/categories/${created.id}`)
       .expect(200);
 

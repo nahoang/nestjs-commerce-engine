@@ -8,8 +8,10 @@ import {
 } from '@nestjs/common';
 import { EntityNotFoundException } from '../shared/domain/exceptions';
 import { ok } from '../shared/api/envelope';
+import { Public } from '../modules/account/api/auth-metadata';
 import { CreateProductTestDto } from './test-fixtures.dto';
 
+@Public()
 @Controller('api/v1/test-exceptions')
 export class TestExceptionsController {
   @Get('entity-not-found')
@@ -18,6 +20,7 @@ export class TestExceptionsController {
   }
 }
 
+@Public()
 @Controller('api/v1/test-fixtures')
 export class TestFixturesController {
   @Post('products')

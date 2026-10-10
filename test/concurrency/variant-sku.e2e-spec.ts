@@ -1,8 +1,7 @@
 import { INestApplication } from '@nestjs/common';
-import { Server } from 'http';
-import * as request from 'supertest';
 import { createTestApp } from '../helpers/test-app';
 import { truncateAll } from '../helpers/db';
+import { adminApi, resetWithAdmin } from '../helpers/auth';
 import { runConcurrently } from '../helpers/concurrency';
 import { PrismaService } from '../../src/shared/infrastructure/prisma/prisma.service';
 import { ApiResponse } from '../../src/shared/api/envelope';
@@ -24,20 +23,18 @@ describe('Variant SKU uniqueness under concurrency (e2e) — DOMAIN-SPEC-1-CATAL
   });
 
   beforeEach(async () => {
-    await truncateAll(prisma);
+    await resetWithAdmin(prisma);
   });
 
-  const server = (): Server => app.getHttpServer() as Server;
-
   it('exactly one of N simultaneous requests wins a SKU; the others get 409', async () => {
-    const created = await request(server())
+    const created = await adminApi(app)
       .post('/api/v1/products')
       .send({ name: 'Race product' })
       .expect(201);
     const productId = (created.body as ApiResponse<ProductResponse>).data.id;
 
     const statuses = await runConcurrently(8, async (i) => {
-      const res = await request(server())
+      const res = await adminApi(app)
         .post(`/api/v1/products/${productId}/variants`)
         .send({ sku: 'RACE-1', name: `Attempt ${i}`, price_amount: '1.00' });
       return res.status;

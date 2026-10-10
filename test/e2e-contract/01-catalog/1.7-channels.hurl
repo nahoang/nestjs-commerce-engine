@@ -1,8 +1,20 @@
 # 01-catalog/1.7-channels.hurl
 # Test contract for Step 1.7: Kênh bán hàng (DOMAIN-SPEC-1-CATALOG § 1.7)
 
+# 0. Đăng nhập admin (API-CONVENTIONS §7): mọi request ghi của catalog cần quyền admin
+POST {{base_url}}/api/v1/auth/login
+Content-Type: application/json
+{
+    "email": "{{admin_email}}",
+    "password": "{{admin_password}}"
+}
+HTTP 200
+[Captures]
+admin_token: jsonpath "$.data.access_token"
+
 # 1. Tạo kênh VND, slug tự sinh từ tên (R1), mặc định is_active = true (R3)
 POST {{base_url}}/api/v1/channels
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Kênh VN {{run_id}}",
@@ -23,6 +35,7 @@ vn_slug: jsonpath "$.data.slug"
 
 # 2. Tạo kênh USD với slug riêng, currency viết thường được chuẩn hóa
 POST {{base_url}}/api/v1/channels
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "US Store {{run_id}}",
@@ -38,6 +51,7 @@ us_slug: jsonpath "$.data.slug"
 
 # 3. Trùng slug -> 409
 POST {{base_url}}/api/v1/channels
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Trùng {{run_id}}",
@@ -50,6 +64,7 @@ jsonpath "$.error_code" == "DUPLICATE_ENTITY"
 
 # 4. currency sai -> 422 field currency
 POST {{base_url}}/api/v1/channels
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Sai tiền tệ {{run_id}}",
@@ -62,6 +77,7 @@ jsonpath "$.errors[0].field" == "currency"
 
 # 5. Danh sách phân trang có cả hai kênh vừa tạo
 GET {{base_url}}/api/v1/channels?limit=100
+Authorization: Bearer {{admin_token}}
 HTTP 200
 [Asserts]
 jsonpath "$.total" >= 2
@@ -70,18 +86,21 @@ jsonpath "$.data[?(@.slug == '{{us_slug}}')]" count == 1
 
 # 6. Lấy theo slug
 GET {{base_url}}/api/v1/channels/{{vn_slug}}
+Authorization: Bearer {{admin_token}}
 HTTP 200
 [Asserts]
 jsonpath "$.data.currency" == "VND"
 
 # 7. Slug không tồn tại -> 404
 GET {{base_url}}/api/v1/channels/khong-ton-tai-{{run_id}}
+Authorization: Bearer {{admin_token}}
 HTTP 404
 [Asserts]
 jsonpath "$.error_code" == "ENTITY_NOT_FOUND"
 
 # 8. PATCH tắt kênh, currency gửi kèm bị bỏ qua (R2, R4)
 PATCH {{base_url}}/api/v1/channels/{{vn_slug}}
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "is_active": false,
@@ -95,6 +114,7 @@ jsonpath "$.data.slug" == "{{vn_slug}}"
 
 # 9. Kênh tắt vẫn quản trị được: đổi tên và bật lại
 PATCH {{base_url}}/api/v1/channels/{{vn_slug}}
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Kênh Việt Nam {{run_id}}",
@@ -108,6 +128,7 @@ jsonpath "$.data.currency" == "VND"
 
 # 10. PATCH slug không tồn tại -> 404
 PATCH {{base_url}}/api/v1/channels/khong-ton-tai-{{run_id}}
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 { "is_active": false }
 HTTP 404

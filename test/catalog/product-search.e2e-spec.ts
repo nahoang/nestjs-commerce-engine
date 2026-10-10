@@ -1,8 +1,7 @@
 import { INestApplication } from '@nestjs/common';
-import { Server } from 'http';
-import * as request from 'supertest';
 import { createTestApp } from '../helpers/test-app';
 import { truncateAll } from '../helpers/db';
+import { adminApi, resetWithAdmin } from '../helpers/auth';
 import { PrismaService } from '../../src/shared/infrastructure/prisma/prisma.service';
 import {
   ApiResponse,
@@ -18,13 +17,11 @@ describe('Product search (e2e) — DOMAIN-SPEC-1-CATALOG § 1.6', () => {
   let menId: string;
   let teeId: string;
 
-  const server = (): Server => app.getHttpServer() as Server;
-
   async function createCategory(
     name: string,
     parentId?: string,
   ): Promise<string> {
-    const res = await request(server())
+    const res = await adminApi(app)
       .post('/api/v1/categories')
       .send({ name, parent_id: parentId })
       .expect(201);
@@ -38,7 +35,7 @@ describe('Product search (e2e) — DOMAIN-SPEC-1-CATALOG § 1.6', () => {
     is_published?: boolean;
     variants: Array<{ sku: string; price: string; currency: string }>;
   }): Promise<void> {
-    await request(server())
+    await adminApi(app)
       .post('/api/v1/products')
       .send({
         ...body,
@@ -55,7 +52,7 @@ describe('Product search (e2e) — DOMAIN-SPEC-1-CATALOG § 1.6', () => {
   async function search(
     query: Record<string, string | number>,
   ): Promise<PaginatedResponse<ProductResponse>> {
-    const res = await request(server())
+    const res = await adminApi(app)
       .get('/api/v1/products')
       .query(query)
       .expect(200);
@@ -70,7 +67,7 @@ describe('Product search (e2e) — DOMAIN-SPEC-1-CATALOG § 1.6', () => {
     const context = await createTestApp();
     app = context.app;
     prisma = context.prisma;
-    await truncateAll(prisma);
+    await resetWithAdmin(prisma);
 
     const rootId = await createCategory('Thời trang');
     menId = await createCategory('Đồ Nam', rootId);
@@ -143,7 +140,7 @@ describe('Product search (e2e) — DOMAIN-SPEC-1-CATALOG § 1.6', () => {
   });
 
   it('2b. unknown category_id -> 404', async () => {
-    const res = await request(server())
+    const res = await adminApi(app)
       .get('/api/v1/products')
       .query({ category_id: '00000000-0000-0000-0000-000000000000' })
       .expect(404);
@@ -180,7 +177,7 @@ describe('Product search (e2e) — DOMAIN-SPEC-1-CATALOG § 1.6', () => {
     [{ sort_by: 'cheapest' }, 'sort_by'],
     [{ is_published: 'maybe' }, 'is_published'],
   ])('4. invalid query %j -> 422 on %s', async (query, field) => {
-    const res = await request(server())
+    const res = await adminApi(app)
       .get('/api/v1/products')
       .query(query)
       .expect(422);

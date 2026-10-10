@@ -2,8 +2,20 @@
 # Test contract for Step 1.5: Value Objects, entity có hành vi & tầng use case (DOMAIN-SPEC-1-CATALOG § 1.5)
 # Test case 1–3 (Money, Slug) là unit test thuần domain; file này kiểm tra test case 4–7 qua HTTP.
 
+# 0. Đăng nhập admin (API-CONVENTIONS §7): mọi request ghi của catalog cần quyền admin
+POST {{base_url}}/api/v1/auth/login
+Content-Type: application/json
+{
+    "email": "{{admin_email}}",
+    "password": "{{admin_password}}"
+}
+HTTP 200
+[Captures]
+admin_token: jsonpath "$.data.access_token"
+
 # 4. Slug do client truyền không hợp lệ -> 422, field slug
 POST {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Slug Không Hợp Lệ {{run_id}}",
@@ -16,6 +28,7 @@ jsonpath "$.error_code" == "VALIDATION_ERROR"
 jsonpath "$.errors[0].field" == "slug"
 
 POST {{base_url}}/api/v1/categories
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Danh Mục Slug Sai {{run_id}}",
@@ -28,6 +41,7 @@ jsonpath "$.errors[0].field" == "slug"
 
 # 5. Sản phẩm có biến thể TS-M; thêm biến thể SKU "ts-m" -> 409 (SKU không phân biệt hoa thường)
 POST {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Áo Quy Tắc Domain {{run_id}}",
@@ -40,6 +54,7 @@ HTTP 201
 product_id: jsonpath "$.data.id"
 
 POST {{base_url}}/api/v1/products/{{product_id}}/variants
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "sku": "v15-m-{{run_id}}",
@@ -52,6 +67,7 @@ jsonpath "$.error_code" == "DUPLICATE_ENTITY"
 
 # 5b. SKU được lưu và trả về ở dạng chuẩn hóa (in hoa)
 POST {{base_url}}/api/v1/products/{{product_id}}/variants
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "sku": "  v15-l-{{run_id}} ",
@@ -64,6 +80,7 @@ jsonpath "$.data.sku" == "V15-L-{{run_id}}"
 
 # 7. Sản phẩm đã có biến thể USD, thêm biến thể VND -> 400 INVALID_OPERATION
 POST {{base_url}}/api/v1/products/{{product_id}}/variants
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "sku": "V15-VND-{{run_id}}",
@@ -77,6 +94,7 @@ jsonpath "$.error_code" == "INVALID_OPERATION"
 
 # 6. Xuất bản sản phẩm chưa có biến thể -> 400; thêm biến thể rồi xuất bản -> 200
 POST {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Sản Phẩm Nháp {{run_id}}"
@@ -88,11 +106,13 @@ jsonpath "$.data.is_published" == false
 draft_id: jsonpath "$.data.id"
 
 POST {{base_url}}/api/v1/products/{{draft_id}}/publish
+Authorization: Bearer {{admin_token}}
 HTTP 400
 [Asserts]
 jsonpath "$.error_code" == "INVALID_OPERATION"
 
 POST {{base_url}}/api/v1/products/{{draft_id}}/variants
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "sku": "V15-D-{{run_id}}",
@@ -102,29 +122,34 @@ Content-Type: application/json
 HTTP 201
 
 POST {{base_url}}/api/v1/products/{{draft_id}}/publish
+Authorization: Bearer {{admin_token}}
 HTTP 200
 [Asserts]
 jsonpath "$.data.is_published" == true
 jsonpath "$.data.variants" count == 1
 
 POST {{base_url}}/api/v1/products/{{draft_id}}/unpublish
+Authorization: Bearer {{admin_token}}
 HTTP 200
 [Asserts]
 jsonpath "$.data.is_published" == false
 
 # 6b. publish / unpublish sản phẩm không tồn tại -> 404
 POST {{base_url}}/api/v1/products/00000000-0000-0000-0000-000000000000/publish
+Authorization: Bearer {{admin_token}}
 HTTP 404
 [Asserts]
 jsonpath "$.error_code" == "ENTITY_NOT_FOUND"
 
 POST {{base_url}}/api/v1/products/00000000-0000-0000-0000-000000000000/unpublish
+Authorization: Bearer {{admin_token}}
 HTTP 404
 [Asserts]
 jsonpath "$.error_code" == "ENTITY_NOT_FOUND"
 
 # 6c. Tạo sản phẩm với is_published=true và không có biến thể -> 400, không có sản phẩm nào được tạo
 POST {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Xuất Bản Ngay {{run_id}}",
@@ -135,12 +160,14 @@ HTTP 400
 jsonpath "$.error_code" == "INVALID_OPERATION"
 
 GET {{base_url}}/api/v1/products/xuat-ban-ngay-{{run_id}}
+Authorization: Bearer {{admin_token}}
 HTTP 404
 [Asserts]
 jsonpath "$.error_code" == "ENTITY_NOT_FOUND"
 
 # 6d. Tạo sản phẩm với is_published=true kèm biến thể -> 201, đã xuất bản
 POST {{base_url}}/api/v1/products
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 {
     "name": "Xuất Bản Có Biến Thể {{run_id}}",
