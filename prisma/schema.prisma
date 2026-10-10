@@ -118,3 +118,22 @@ model ProductVariantChannelListing {
   @@index([channelId])
   @@map("product_variant_channel_listings")
 }
+
+// `role` is a plain VARCHAR validated by the domain `Role` union type; the CHECK
+// constraint added by hand in the migration is the database-side safety net
+// (Prisma cannot express CHECK). A native enum is avoided on purpose: changing a
+// PostgreSQL enum later needs a dedicated migration and cannot drop values easily.
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  firstName    String   @map("first_name") @db.VarChar(100)
+  lastName     String   @map("last_name") @db.VarChar(100)
+  role         String   @default("customer") @db.VarChar(20)
+  isActive     Boolean  @default(true) @map("is_active")
+  tokenKey     String   @map("token_key") @db.VarChar(64)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("users")
+}

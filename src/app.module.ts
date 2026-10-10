@@ -13,6 +13,7 @@ import { HealthModule } from './health/health.module';
 import { validate, AppConfigModule } from './shared/infrastructure/config';
 import { TestFixturesModule } from './test-fixtures/test-fixtures.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
+import { AccountModule } from './modules/account/account.module';
 
 const extraModules =
   process.env.NODE_ENV !== 'production' ? [TestFixturesModule] : [];
@@ -21,6 +22,7 @@ const extraModules =
   imports: [
     ...extraModules,
     CatalogModule,
+    AccountModule,
     ConfigModule.forRoot({
       isGlobal: true,
       validate,

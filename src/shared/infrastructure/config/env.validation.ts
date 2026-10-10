@@ -21,6 +21,9 @@ export const envSchema = z.object({
   ALLOWED_ORIGINS: z.string().default('*'),
   // 0 disables the storefront cache
   STOREFRONT_CACHE_TTL_SECONDS: z.coerce.number().int().min(0).default(30),
+  // First admin account, created at startup when both are set (empty = skip)
+  BOOTSTRAP_ADMIN_EMAIL: z.string().trim().optional(),
+  BOOTSTRAP_ADMIN_PASSWORD: z.string().optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

@@ -64,6 +64,21 @@ export class AppConfigService {
     });
   }
 
+  /** Empty or unset means "do not bootstrap an admin". */
+  get bootstrapAdminEmail(): string | undefined {
+    return (
+      this.configService.get('BOOTSTRAP_ADMIN_EMAIL', { infer: true }) ||
+      undefined
+    );
+  }
+
+  get bootstrapAdminPassword(): string | undefined {
+    return (
+      this.configService.get('BOOTSTRAP_ADMIN_PASSWORD', { infer: true }) ||
+      undefined
+    );
+  }
+
   get allowedOrigins(): string[] {
     const raw = this.configService.get('ALLOWED_ORIGINS', { infer: true });
     if (!raw || raw.trim() === '*') {
