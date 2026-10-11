@@ -14,6 +14,11 @@ export class PrismaChannelRepository implements ChannelRepository {
     private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
   ) {}
 
+  async findById(id: string): Promise<Channel | null> {
+    const record = await this.txHost.tx.channel.findUnique({ where: { id } });
+    return record ? ChannelMapper.toDomain(record) : null;
+  }
+
   async findBySlug(slug: string): Promise<Channel | null> {
     const record = await this.txHost.tx.channel.findUnique({ where: { slug } });
     return record ? ChannelMapper.toDomain(record) : null;

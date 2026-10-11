@@ -64,6 +64,10 @@ export class AppConfigService {
     });
   }
 
+  get cartLineMaxQuantity(): number {
+    return this.configService.get('CART_LINE_MAX_QUANTITY', { infer: true });
+  }
+
   get loginRateLimit(): number {
     return this.configService.get('LOGIN_RATE_LIMIT', { infer: true });
   }

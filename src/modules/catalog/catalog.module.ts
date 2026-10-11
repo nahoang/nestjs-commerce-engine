@@ -32,6 +32,8 @@ import { CacheManagerStorefrontCache } from './infrastructure/cache-manager-stor
 import { PrismaChannelListingRepository } from './infrastructure/prisma-channel-listing.repository';
 import { PrismaChannelRepository } from './infrastructure/prisma-channel.repository';
 import { PrismaProductRepository } from './infrastructure/prisma-product.repository';
+import { PricingQuery } from './application/pricing-query';
+import { PrismaPricingQuery } from './infrastructure/prisma-pricing.query';
 
 @Module({
   imports: [
@@ -63,6 +65,7 @@ import { PrismaProductRepository } from './infrastructure/prisma-product.reposit
       useClass: PrismaChannelListingRepository,
     },
     { provide: StorefrontCache, useClass: CacheManagerStorefrontCache },
+    { provide: PricingQuery, useClass: PrismaPricingQuery },
     CreateChannelUseCase,
     GetChannelUseCase,
     ListChannelsUseCase,
@@ -83,6 +86,7 @@ import { PrismaProductRepository } from './infrastructure/prisma-product.reposit
     GetChannelStorefrontUseCase,
     ChannelListingRepository,
     StorefrontCache,
+    PricingQuery,
     ChannelRepository,
     CreateChannelUseCase,
     GetChannelUseCase,

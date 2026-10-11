@@ -80,8 +80,9 @@ model ProductVariant {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  product  Product                        @relation(fields: [productId], references: [id], onDelete: Cascade)
-  listings ProductVariantChannelListing[]
+  product   Product                        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  listings  ProductVariantChannelListing[]
+  cartLines CartLine[]
 
   @@index([productId])
   @@map("product_variants")
@@ -97,6 +98,7 @@ model Channel {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   listings ProductVariantChannelListing[]
+  carts    Cart[]
 
   @@map("channels")
 }
@@ -135,5 +137,44 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  carts Cart[]
+
   @@map("users")
+}
+
+// `status` is a plain VARCHAR validated by the domain; a CHECK in the migration is the safety net.
+// voucher_id is added in Step 3.6.
+model Cart {
+  id        String   @id @default(uuid())
+  token     String   @unique @db.VarChar(64)
+  channelId String   @map("channel_id")
+  userId    String?  @map("user_id")
+  status    String   @default("ACTIVE") @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  channel Channel    @relation(fields: [channelId], references: [id], onDelete: Restrict)
+  user    User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  lines   CartLine[]
+
+  @@index([channelId])
+  @@index([userId])
+  @@map("carts")
+}
+
+// No price column on purpose: the price is read from the channel listing on every request.
+model CartLine {
+  id        String   @id @default(uuid())
+  cartId    String   @map("cart_id")
+  variantId String   @map("variant_id")
+  quantity  Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  cart    Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, variantId])
+  @@index([variantId])
+  @@map("cart_lines")
 }

@@ -24,6 +24,8 @@ export const envSchema = z.object({
   // Login brute-force guard: at most LIMIT calls per WINDOW seconds per client IP
   LOGIN_RATE_LIMIT: z.coerce.number().int().min(1).default(5),
   LOGIN_RATE_WINDOW_SECONDS: z.coerce.number().int().min(1).default(60),
+  // Max quantity of one variant in a cart (DOMAIN-SPEC-3-CART § 3.1 R2)
+  CART_LINE_MAX_QUANTITY: z.coerce.number().int().min(1).default(50),
   // First admin account, created at startup when both are set (empty = skip)
   BOOTSTRAP_ADMIN_EMAIL: z.string().trim().optional(),
   BOOTSTRAP_ADMIN_PASSWORD: z.string().optional(),

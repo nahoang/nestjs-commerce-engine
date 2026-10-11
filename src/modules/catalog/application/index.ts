@@ -22,3 +22,4 @@ export * from './storefront-cache';
 export * from './channel-listing.repository';
 export * from './create-listing.use-case';
 export * from './get-channel-storefront.use-case';
+export * from './pricing-query';
